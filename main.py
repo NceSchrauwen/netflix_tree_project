@@ -1,9 +1,9 @@
 import random
 from title import NetflixTitle
 import mysql.connector
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles
 
 global netflix_titles
-
 
 def connect_db(num_results=200):
     global netflix_titles
@@ -115,15 +115,15 @@ if __name__ == '__main__':
 
     # For intensive testing of long movie titles with this genre use the following line
     # selected_title = get_standup_comedy_titles(netflix_titles)
-    # print_title_attributes(selected_title)
+    print_title_attributes(selected_title)
     #
-    # num_suggestions = 5
-    # decision_tree_root = build_decision_tree(netflix_titles, selected_title, num_suggestions)
+    num_suggestions = 5
+    decision_tree_root = build_decision_tree(netflix_titles, selected_title, num_suggestions)
     # #
     #
     # #
-    # recommended_titles = get_recommended_titles(decision_tree_root, num_suggestions)
-    # print(f'Recommended Titles:')
-    # for title in recommended_titles:
-    #     print_title_attributes(title)
-    #     print('--- end ---')
+    recommended_titles = get_recommended_titles(decision_tree_root, num_suggestions)
+    print(f'Recommended Titles:')
+    for title in recommended_titles:
+        print_title_attributes(title)
+        print('--- end ---')

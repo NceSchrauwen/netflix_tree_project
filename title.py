@@ -1,3 +1,5 @@
+#Developed by: Nina Schrauwen
+#Date: 11/04/2021
 class NetflixTitle:
     # constructor of class
     def __init__(self, show_id, type, title, director, cast,country,date_added,release_year,rating,duration,listed_in,description,score):

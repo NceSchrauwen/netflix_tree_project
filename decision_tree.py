@@ -1,3 +1,5 @@
+#Developed by: Nina Schrauwen
+#Date: 11/04/2021
 from collections import deque
 
 country_preference = None

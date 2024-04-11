@@ -1,3 +1,7 @@
+#Developed by: Nina Schrauwen
+#Date: 11/04/2021
+#Description: This is the main file of the Netflix recommendation system. It connects to the database, retrieves the Netflix titles, and selects a random title. It then builds a decision tree and retrieves the recommended titles.
+
 import random
 from title import NetflixTitle
 import mysql.connector

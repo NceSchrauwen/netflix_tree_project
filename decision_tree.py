@@ -41,13 +41,6 @@ def get_user_input():
     #     else:
     #         print("Invalid input. Please enter 'yes' or 'no'.")
 
-    # while True:
-    #     duration_pref = input("Do you want to watch a short movie/season? (yes/no): ").strip().lower()
-    #     if duration_pref in ["yes", "no"]:
-    #         duration_preference = duration_pref
-    #         break
-    #     else:
-    #         print("Invalid input. Please enter 'yes' or 'no'.")
 
     while True:
         child_friendly_pref = input("Do you want to watch a child-friendly (under age 13) movie/season? (yes/no): ").strip().lower()
@@ -61,6 +54,14 @@ def get_user_input():
         classic_pref = input("Do you want to watch a classic movie/season? (yes/no): ").strip().lower()
         if classic_pref in ["yes", "no"]:
             classic_preference = classic_pref
+            break
+        else:
+            print("Invalid input. Please enter 'yes' or 'no'.")
+
+    while True:
+        duration_pref = input("Do you want to watch a short movie/season? (yes/no): ").strip().lower()
+        if duration_pref in ["yes", "no"]:
+            duration_preference = duration_pref
             break
         else:
             print("Invalid input. Please enter 'yes' or 'no'.")
@@ -118,6 +119,28 @@ def build_path(node, directions, criteria, recommended_titles):
     # if a new node is made then recurse with the new node and the remaining directions
     return build_path(node, directions_copy, criteria, recommended_titles)
 
+# function to determine wheter the title is a movie or a tv show and then filter  and return the titles based on the duration
+def decide_title_type(selected_title, duration_preference, previous_titles):
+    # If the user wants to watch a short movie/season, create a new list of titles that are less than or equal to 80 minutes or 1 season
+    if duration_preference == "yes":
+        if selected_title.type.lower() == "movie":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
+        elif selected_title.type.lower() == "tv show":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
+        else:
+            return "Invalid Title Type"
+    # If the user wants to watch a long movie/season, create a new list of titles that are greater than 80 minutes or 1 season
+    elif duration_preference == "no":
+        if selected_title.type.lower() == "movie":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
+        elif selected_title.type.lower() == "tv show":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
+        else:
+            return "Invalid Title Type"
+
+    # Return the new list of titles
+    return new_titles
+
 
 # to recursively run through the decision tree searching for the best recommendation
 def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
@@ -165,51 +188,135 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
             print('No titles found that have the same genre and type')
             return
 
-        # TODO: Put decision tree logic here
-
+        # If the user wants to watch a child-friendly movie/season, create a new list of titles that are rated with only the ages listed exluding "NR"
         if child_friendly_preference == "yes":
             child_friendly_data = [title for title in same_type_data if
-                                   title.rating and title.rating.lower() in ["g", "tv-y", "tv-y7", "tv-g", "pg", "tv-pg"]]
+                                title.rating and title.rating.lower() in ["g", "tv-y", "tv-y7", "tv-g", "pg", "tv-pg"] and title.rating.lower != "nr"]
+
+            # If there is child_friendly_data, then add a left direction and the corresponding criteria to the list
             if child_friendly_data:
                 directions.append("left")
                 criteria.append("Child-Friendly Titles")
                 recommended_titles = child_friendly_data
+            # If the user wants to watch a classic movie/season, create a new list of titles that were released before or at year 2010
             if classic_preference == "yes":
                 classic_data = [title for title in child_friendly_data if title.release_year <= 2010]
+                # If there is classic_data, then add a left direction and the corresponding criteria to the list
                 if classic_data:
                     directions.append("left")
                     criteria.append("Classic Titles")
                     recommended_titles = classic_data
+
+                    # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                    if duration_preference == "yes":
+                        short_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
+                        # If there is short_classic_data, then add a left direction and the corresponding criteria to the list
+                        if short_classic_data:
+                            directions.append("left")
+                            criteria.append("Short Titles")
+                            recommended_titles = short_classic_data
+                    # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                    elif duration_preference == "no":
+                        long_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
+                        # If there is long_classic_data, then add a right direction and the corresponding criteria to the list
+                        if long_classic_data:
+                            directions.append("right")
+                            criteria.append("Long Titles")
+                            recommended_titles = long_classic_data
+
+            # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
             elif classic_preference == "no":
                 non_classic_data = [title for title in child_friendly_data if title.release_year > 2010]
+                # If there is non-classic_data, then add a right direction and the corresponding criteria to the list
                 if non_classic_data:
                     directions.append("right")
                     criteria.append("Non-Classic Titles")
                     recommended_titles = non_classic_data
 
+                    # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                    if duration_preference == "yes":
+                        non_classic_short_data = decide_title_type(selected_title, duration_preference, non_classic_data)
+                        # If there is short non-classic_data, then add a left direction and the corresponding criteria to the list
+                        if non_classic_short_data:
+                            directions.append("left")
+                            criteria.append("Short Titles")
+                            recommended_titles = non_classic_short_data
+                    # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                    elif duration_preference == "no":
+                        non_classic_long_data = decide_title_type(selected_title, duration_preference, non_classic_data)
+                        # If there is long non_classic_data, then add a right direction and the corresponding criteria to the list
+                        if non_classic_long_data:
+                            directions.append("right")
+                            criteria.append("Long Titles")
+                            recommended_titles = non_classic_long_data
+
+        # If the user does not want to watch a child-friendly movie/season, create a new list of titles that are not rated with the ages listed (thus also inluding "NR")
         elif child_friendly_preference == "no":
             non_child_friendly_data = [title for title in same_type_data if title.rating and title.rating.lower() not in ["g", "tv-y", "tv-y7", "tv-g", "pg", "tv-pg"]]
 
+            # If there is non_child_friendly_data, then add a right direction and the corresponding criteria to the list
             if non_child_friendly_data:
                 directions.append("right")
                 criteria.append("Non-Child-Friendly Titles")
                 recommended_titles = non_child_friendly_data
-            if classic_preference == "yes":
-                classic_non_child_friendly_data = [title for title in non_child_friendly_data if title.release_year <= 2010]
-                if classic_non_child_friendly_data:
-                    directions.append("left")
-                    criteria.append("Classic Titles")
-                    recommended_titles = classic_non_child_friendly_data
-            elif classic_preference == "no":
-                non_classic_non_child_friendly_data = [title for title in non_child_friendly_data if title.release_year > 2010]
-                if non_classic_non_child_friendly_data:
-                    directions.append("right")
-                    criteria.append("Non-Classic Titles")
-                    recommended_titles = non_classic_non_child_friendly_data
 
+                # If the user wants to watch a classic movie/season, create a new list of titles that were released before or at year 2010
+                if classic_preference == "yes":
+                    classic_non_child_friendly_data = [title for title in non_child_friendly_data if title.release_year <= 2010]
+                    # If there is classic_non_child_friendly_data, then add a left direction and the corresponding criteria to the list
+                    if classic_non_child_friendly_data:
+                        directions.append("left")
+                        criteria.append("Classic Titles")
+                        recommended_titles = classic_non_child_friendly_data
+
+                        # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        if duration_preference == "yes":
+                            non_friendly_classic_short_data = decide_title_type(selected_title, duration_preference, classic_non_child_friendly_data)
+                            # If there is non_friendly_classic_short_data, then add a left direction and the corresponding criteria to the list
+                            if non_friendly_classic_short_data:
+                                directions.append("left")
+                                criteria.append("Short Titles")
+                                recommended_titles = non_friendly_classic_short_data
+                        # If the user want to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        elif duration_preference == "no":
+                            non_friendly_classic_long_data = decide_title_type(selected_title, duration_preference, classic_non_child_friendly_data)
+                            # If there is non_friendly_classic_long_data, then add a right direction and the corresponding criteria to the list
+                            if non_friendly_classic_long_data:
+                                directions.append("right")
+                                criteria.append("Long Titles")
+                                recommended_titles = non_friendly_classic_long_data
+
+                # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
+                elif classic_preference == "no":
+                    non_classic_non_child_friendly_data = [title for title in non_child_friendly_data if title.release_year > 2010]
+                    # If there is non_classic_non_child_friendly_data, then add a right direction and the corresponding criteria to the list
+                    if non_classic_non_child_friendly_data:
+                        directions.append("right")
+                        criteria.append("Non-Classic Titles")
+                        recommended_titles = non_classic_non_child_friendly_data
+
+                        # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        if duration_preference == "yes":
+                            non_friendly_modern_short_data = decide_title_type(selected_title, duration_preference, non_classic_non_child_friendly_data)
+                            # If there is non_friendly_modern_short_data, then add a left direction and the corresponding criteria to the list
+                            if non_friendly_modern_short_data:
+                                directions.append("left")
+                                criteria.append("Short Titles")
+                                recommended_titles = non_friendly_modern_short_data
+                        # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        elif duration_preference == "no":
+                            non_friendly_modern_long_data = decide_title_type(selected_title, duration_preference, non_classic_non_child_friendly_data)
+                            # If there is non_friendly_modern_long_data, then add a right direction and the corresponding criteria to the list
+                            if non_friendly_modern_long_data:
+                                directions.append("right")
+                                criteria.append("Long Titles")
+                                recommended_titles = non_friendly_modern_long_data
+
+    # Call the function build_path to build the path based on the directions and criteria and create new node objects
+    # Only called here because it's always going to take 1 certain path and will end up here, this way it's only called once
     new_node = build_path(node, directions, criteria, recommended_titles)
 
-    return
+    return new_node
 
 
 # It is only called in the main function to get the recommended titles with the decision tree logic

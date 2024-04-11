@@ -107,7 +107,6 @@ if __name__ == '__main__':
 
     #original sample title pick function
     selected_title = get_sample_title(netflix_titles)
-    print_title_attributes(selected_title)
 
     # custom title pick functions
     # selected_title = get_movie_titles(netflix_titles)

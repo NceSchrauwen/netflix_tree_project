@@ -35,15 +35,6 @@ def get_user_input():
     global child_friendly_preference
     global classic_preference
 
-    # while True:
-    #     preference = input("Do you want to watch a movie from the US or the UK? (yes/no): ").strip().lower()
-    #     if preference in ["yes", "no"]:
-    #         country_preference = preference
-    #         break
-    #     else:
-    #         print("Invalid input. Please enter 'yes' or 'no'.")
-
-
     while True:
         child_friendly_pref = input("Do you want to watch a child-friendly (under age 13) movie/season? (yes/no): ").strip().lower()
         if child_friendly_pref in ["yes", "no"]:
@@ -68,7 +59,13 @@ def get_user_input():
         else:
             print("Invalid input. Please enter 'yes' or 'no'.")
 
-
+    while True:
+        preference = input("Do you want to watch a movie from the US or the UK? (yes/no): ").strip().lower()
+        if preference in ["yes", "no"]:
+            country_preference = preference
+            break
+        else:
+            print("Invalid input. Please enter 'yes' or 'no'.")
 
 # to build the decision tree and get the recommendations based on the user input
 def build_decision_tree(netflix_data, selected_title, num_suggestions):
@@ -83,8 +80,10 @@ def build_decision_tree(netflix_data, selected_title, num_suggestions):
 # function to build node and its path based on the direction input
 def build_path(node, directions, criteria, recommended_titles):
     global criterion
-    # if there are no directions left, then return the node
+
+    # if there are no directions left, then return the node with the recommended titles
     if not directions:
+        node.recommended_titles = recommended_titles
         return node
 
     directions_copy = directions.copy()
@@ -106,7 +105,8 @@ def build_path(node, directions, criteria, recommended_titles):
         else:
             node.left_child.criterion = criterion
             node.left_child.recommended_titles = recommended_titles
-        return build_path(node.left_child, directions_copy, criteria, recommended_titles)
+        build_path(node.left_child, directions_copy, criteria, recommended_titles)
+
     # if the direction is right, then create a new node and set it to the right child of the current node
     elif direction == 'right':
         if node.right_child is None:
@@ -116,29 +116,26 @@ def build_path(node, directions, criteria, recommended_titles):
         else:
             node.right_child.criterion = criterion
             node.right_child.recommended_titles = recommended_titles
-        return build_path(node.right_child, directions_copy, criteria, recommended_titles)
+        build_path(node.right_child, directions_copy, criteria, recommended_titles)
 
     # if a new node is made then recurse with the new node and the remaining directions
-    return build_path(node, directions_copy, criteria, recommended_titles)
+    return node
 
 # function to determine wheter the title is a movie or a tv show and then filter  and return the titles based on the duration
 def decide_title_type(selected_title, duration_preference, previous_titles):
-    # If the user wants to watch a short movie/season, create a new list of titles that are less than or equal to 80 minutes or 1 season
-    if duration_preference == "yes":
-        if selected_title.type.lower() == "movie":
+    if selected_title.type.lower() == "movie":
+        if duration_preference == "yes":
             new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
-        elif selected_title.type.lower() == "tv show":
-            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
-        else:
-            return "Invalid Title Type"
-    # If the user wants to watch a long movie/season, create a new list of titles that are greater than 80 minutes or 1 season
-    elif duration_preference == "no":
-        if selected_title.type.lower() == "movie":
+        elif duration_preference == "no":
             new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
-        elif selected_title.type.lower() == "tv show":
+
+    elif selected_title.type.lower() == "tv show":
+        if duration_preference == "yes":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
+        elif duration_preference == "no":
             new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
-        else:
-            return "Invalid Title Type"
+    else:
+        return "Invalid Title Type"
 
     # Return the new list of titles
     return new_titles
@@ -200,6 +197,7 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                 directions.append("left")
                 criteria.append("Child-Friendly Titles")
                 recommended_titles = child_friendly_data
+
             # If the user wants to watch a classic movie/season, create a new list of titles that were released before or at year 2010
             if classic_preference == "yes":
                 classic_data = [title for title in child_friendly_data if title.release_year <= 2010]
@@ -217,6 +215,24 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             directions.append("left")
                             criteria.append("Short Titles")
                             recommended_titles = short_classic_data
+
+                            # print(f'!!! Short classic data: {len(short_classic_data)} !!!')
+
+                            if country_preference == "yes":
+                                us_uk_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                if us_uk_short_classic_data:
+                                    directions.append("left")
+                                    criteria.append("US/UK Titles")
+                                    recommended_titles = us_uk_short_classic_data
+                            elif country_preference == "no":
+                                other_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                              country.strip().lower() not in ["united states", "united kingdom"] for country in
+                              title.country.lower().split(', '))]
+                                if other_short_classic_data:
+                                    directions.append("right")
+                                    criteria.append("Other Titles")
+                                    recommended_titles = other_short_classic_data
+
                     # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
                     elif duration_preference == "no":
                         long_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
@@ -225,6 +241,7 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             directions.append("right")
                             criteria.append("Long Titles")
                             recommended_titles = long_classic_data
+
 
             # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
             elif classic_preference == "no":
@@ -348,6 +365,9 @@ def get_recommended_titles(node, num_suggestions):
     right_recommended = get_recommended_titles(node.right_child, num_suggestions)
     recommended_titles.extend(right_recommended)
     print(f"Recommended found right side: {len(right_recommended)}")
+
+    # Remove duplicates from the list
+    recommended_titles = list(set(recommended_titles))
 
     # is keeping score how many recommended titles are found so far in total (from left, right and current node)
     print(f"Recommended titles so far: {len(recommended_titles)}")

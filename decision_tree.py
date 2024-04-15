@@ -232,6 +232,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                     directions.append("right")
                                     criteria.append("Other Titles")
                                     recommended_titles = other_short_classic_data
+                            else :
+                                print("No recommended titles found based on this country preference in combination with the short_classic_data criteria")
 
                     # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
                     elif duration_preference == "no":
@@ -241,6 +243,23 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             directions.append("right")
                             criteria.append("Long Titles")
                             recommended_titles = long_classic_data
+
+                            if country_preference == "yes":
+                                us_uk_long_classic_data = [title for title in long_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                if us_uk_long_classic_data:
+                                    directions.append("left")
+                                    criteria.append("US/UK Titles")
+                                    recommended_titles = us_uk_long_classic_data
+                            elif country_preference == "no":
+                                other_long_classic_data = [title for title in long_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                              country.strip().lower() not in ["united states", "united kingdom"] for country in
+                              title.country.lower().split(', '))]
+                                if other_long_classic_data:
+                                    directions.append("right")
+                                    criteria.append("Other Titles")
+                                    recommended_titles = other_long_classic_data
+                            else:
+                                print("No recommended titles found based on this country preference in combination with the long_classic_data criteria")
 
 
             # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
@@ -260,6 +279,24 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             directions.append("left")
                             criteria.append("Short Titles")
                             recommended_titles = non_classic_short_data
+
+                            if country_preference == "yes":
+                                us_uk_short_non_classic_data = [title for title in non_classic_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                if us_uk_short_non_classic_data:
+                                    directions.append("left")
+                                    criteria.append("US/UK Titles")
+                                    recommended_titles = us_uk_short_non_classic_data
+                            elif country_preference == "no":
+                                other_short_non_classic_data = [title for title in non_classic_short_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                              country.strip().lower() not in ["united states", "united kingdom"] for country in
+                              title.country.lower().split(', '))]
+                                if other_short_non_classic_data:
+                                    directions.append("right")
+                                    criteria.append("Other Titles")
+                                    recommended_titles = other_short_non_classic_data
+                            else:
+                                print("No recommended titles found based on this country preference in combination with the non_classic_short_data criteria")
+
                     # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
                     elif duration_preference == "no":
                         non_classic_long_data = decide_title_type(selected_title, duration_preference, non_classic_data)
@@ -268,6 +305,23 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             directions.append("right")
                             criteria.append("Long Titles")
                             recommended_titles = non_classic_long_data
+
+                            if country_preference == "yes":
+                                us_uk_long_non_classic_data = [title for title in non_classic_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                if us_uk_long_non_classic_data:
+                                    directions.append("left")
+                                    criteria.append("US/UK Titles")
+                                    recommended_titles = us_uk_long_non_classic_data
+                            elif country_preference == "no":
+                                other_non_classic_long_data = [title for title in non_classic_long_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                              country.strip().lower() not in ["united states", "united kingdom"] for country in
+                              title.country.lower().split(', '))]
+                                if other_non_classic_long_data:
+                                    directions.append("right")
+                                    criteria.append("Other Titles")
+                                    recommended_titles = other_non_classic_long_data
+                            else:
+                                print("No recommended titles found based on this country preference in combination with the non_classic_long_data criteria")
 
         # If the user does not want to watch a child-friendly movie/season, create a new list of titles that are not rated with the ages listed (thus also inluding "NR")
         elif child_friendly_preference == "no":

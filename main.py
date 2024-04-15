@@ -52,8 +52,9 @@ def print_title_attributes(title):
     print(f"Show ID: {title.show_id}")
     print(f"Type: {title.type}")
     print(f"Title: {title.title}")
-    print(f"Release Year: {title.release_year}")
     print(f"Listed In: {title.listed_in}")
+    print(f"Review following criteria: ")
+    print(f"Release Year: {title.release_year}")
     print(f'Country: {title.country}')
     print(f'Duration: {title.duration}')
     print(f'Age rating {title.rating}')
@@ -118,6 +119,8 @@ if __name__ == '__main__':
 
     # For intensive testing of long movie titles with this genre use the following line
     # selected_title = get_standup_comedy_titles(netflix_titles)
+
+    # Print selected_title attributes
     print_title_attributes(selected_title)
     #
     num_suggestions = 5

@@ -67,6 +67,20 @@ def get_user_input():
         else:
             print("Invalid input. Please enter 'yes' or 'no'.")
 
+def get_user_scores(num_suggestions):
+    while True:
+        try:
+            user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ")
+            selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
+            # Validate indices (within range)
+            valid_indices = [idx for idx in selected_indices if 1 <= idx <= num_suggestions]
+            if len(valid_indices) == len(selected_indices):
+                break
+            else:
+                print("Invalid input. Please enter valid indices.")
+        except ValueError:
+            print("Invalid input. Please enter valid indices (positive integers).")
+
 # to build the decision tree and get the recommendations based on the user input
 def build_decision_tree(netflix_data, selected_title, num_suggestions):
     root = DecisionTreeNode(criterion="Initial Criterion")
@@ -74,6 +88,7 @@ def build_decision_tree(netflix_data, selected_title, num_suggestions):
 
     recursive_build_tree(root, netflix_data, selected_title, num_suggestions)
     print(f'Root: {root}')
+    # get_user_scores()
     return root
 
 
@@ -531,4 +546,6 @@ def get_recommended_titles(node, num_suggestions):
 
     # return the recommended titles list and limit the amount of suggestions to the user
     return recommended_titles[:num_suggestions]
+
+
 

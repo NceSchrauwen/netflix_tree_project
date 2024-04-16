@@ -5,7 +5,7 @@
 import random
 from title import NetflixTitle
 import mysql.connector
-from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores
 
 global netflix_titles
 
@@ -60,6 +60,23 @@ def print_title_attributes(title):
     print(f'Age rating {title.rating}')
     # print(f"Listed In: {title.date_added}")
     # print(f"Listed In Year: {title.date_added.year}")
+    print("-------------------------------------------------")
+
+
+def new_print_title_attributes(titles):
+    for index, title in enumerate(titles, start=1):
+        print(f"-----------------{index} {title.title} {title.show_id} -----------------")
+        # print(f'Title {title.title}')
+        # print(f"Show ID: {title.show_id}")
+        print(f"Type: {title.type}")
+        print(f"Listed In: {title.listed_in}")
+        print(f"- Review the following criteria: -")
+        print(f"Release Year: {title.release_year}")
+        print(f'Country: {title.country}')
+        print(f'Duration: {title.duration}')
+        print(f'Age rating {title.rating}')
+        print("-------------------------------------------------")
+    print("------------------------END-------------------------")
 
 
 def get_sample_title(netflix_titles):
@@ -106,8 +123,7 @@ def get_movie_titles(netflix_titles):
 
 # Main function to run the application
 if __name__ == '__main__':
-    # connect_db(num_results=10)
-
+    # Connect to the database and retrieve the Netflix titles
     netflix_titles = connect_db(num_results=150)
 
     #original sample title pick function
@@ -120,16 +136,20 @@ if __name__ == '__main__':
     # For intensive testing of long movie titles with this genre use the following line
     # selected_title = get_standup_comedy_titles(netflix_titles)
 
-    # Print selected_title attributes
+    # Prints the sample title and its attributes to the console
     print_title_attributes(selected_title)
-    #
+
+    # Number of recommendations to be made
     num_suggestions = 5
+    # Build the decision tree
     decision_tree_root = build_decision_tree(netflix_titles, selected_title, num_suggestions)
     # #
     #
     # #
     recommended_titles = get_recommended_titles(decision_tree_root, num_suggestions)
-    print(f'Recommended Titles:')
-    for title in recommended_titles:
-        print_title_attributes(title)
-        print('--- end ---')
+    # Prints the results and the attributes of the recommendations to the console
+    new_print_title_attributes(recommended_titles)
+
+    # Call it here in order to get the user scores AFTER the recommendations have been printed out
+    get_user_scores(num_suggestions)
+

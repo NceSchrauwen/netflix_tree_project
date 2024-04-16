@@ -123,23 +123,25 @@ def build_path(node, directions, criteria, recommended_titles):
 
 # function to determine wheter the title is a movie or a tv show and then filter  and return the titles based on the duration
 def decide_title_type(selected_title, duration_preference, previous_titles):
-    if selected_title.type.lower() == "movie":
-        if duration_preference == "yes":
-            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
-        elif duration_preference == "no":
-            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
+    new_titles = []
 
-    elif selected_title.type.lower() == "tv show":
-        if duration_preference == "yes":
-            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
-        elif duration_preference == "no":
-            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
-    else:
-        return "Invalid Title Type"
+    if selected_title.duration is not None:
+        if selected_title.type.lower() == "movie":
+            if duration_preference == "yes":
+                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
+            elif duration_preference == "no":
+                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
+
+        elif selected_title.type.lower() == "tv show":
+            if duration_preference == "yes":
+                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
+            elif duration_preference == "no":
+                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
+        else:
+            return "Invalid duration input"
 
     # Return the new list of titles
     return new_titles
-
 
 # to recursively run through the decision tree searching for the best recommendation
 def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
@@ -217,17 +219,20 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             recommended_titles = short_classic_data
 
                             # print(f'!!! Short classic data: {len(short_classic_data)} !!!')
-
+                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
                                 us_uk_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_short_classic_data:
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_short_classic_data
+                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
                               country.strip().lower() not in ["united states", "united kingdom"] for country in
                               title.country.lower().split(', '))]
+                                # Add the new list of filtered other country titles into a decision tree node on the right side
                                 if other_short_classic_data:
                                     directions.append("right")
                                     criteria.append("Other Titles")
@@ -244,16 +249,20 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             criteria.append("Long Titles")
                             recommended_titles = long_classic_data
 
+                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
                                 us_uk_long_classic_data = [title for title in long_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_long_classic_data:
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_long_classic_data
+                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_long_classic_data = [title for title in long_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
                               country.strip().lower() not in ["united states", "united kingdom"] for country in
                               title.country.lower().split(', '))]
+                                # Add the new lifst of filtered other country titles into a decision tree node on the right side
                                 if other_long_classic_data:
                                     directions.append("right")
                                     criteria.append("Other Titles")
@@ -280,16 +289,20 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             criteria.append("Short Titles")
                             recommended_titles = non_classic_short_data
 
+                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
                                 us_uk_short_non_classic_data = [title for title in non_classic_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_short_non_classic_data:
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_short_non_classic_data
+                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_short_non_classic_data = [title for title in non_classic_short_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
                               country.strip().lower() not in ["united states", "united kingdom"] for country in
                               title.country.lower().split(', '))]
+                                # Add the new list of filtered other country titles into a decision tree node on the right side
                                 if other_short_non_classic_data:
                                     directions.append("right")
                                     criteria.append("Other Titles")
@@ -306,16 +319,20 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             criteria.append("Long Titles")
                             recommended_titles = non_classic_long_data
 
+                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
                                 us_uk_long_non_classic_data = [title for title in non_classic_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_long_non_classic_data:
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_long_non_classic_data
+                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_non_classic_long_data = [title for title in non_classic_long_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
                               country.strip().lower() not in ["united states", "united kingdom"] for country in
                               title.country.lower().split(', '))]
+                                # Add the new list of filtered other country titles into a decision tree node on the right side
                                 if other_non_classic_long_data:
                                     directions.append("right")
                                     criteria.append("Other Titles")
@@ -350,6 +367,28 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                 directions.append("left")
                                 criteria.append("Short Titles")
                                 recommended_titles = non_friendly_classic_short_data
+
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_short_non_friendly_short_classic_data = [title for title in non_friendly_classic_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_short_non_friendly_short_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_short_non_friendly_short_classic_data
+                                # If the user wants to watch a title from another country outside the US/UK, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_short_non_friendly_short_classic_data = [title for title in non_friendly_classic_short_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                                  country.strip().lower() not in ["united states", "united kingdom"] for country in
+                                  title.country.lower().split(', '))]
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_short_non_friendly_short_classic_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_short_non_friendly_short_classic_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_friendly_classic_short_data criteria")
+
                         # If the user want to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
                         elif duration_preference == "no":
                             non_friendly_classic_long_data = decide_title_type(selected_title, duration_preference, classic_non_child_friendly_data)
@@ -358,6 +397,26 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                 directions.append("right")
                                 criteria.append("Long Titles")
                                 recommended_titles = non_friendly_classic_long_data
+
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_long_non_friendly_long_classic_data = [title for title in non_friendly_classic_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_long_non_friendly_long_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_long_non_friendly_long_classic_data
+                                # If the user wants to watch a title from another country outside the US/UK, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_non_friendly_long_classic_data = [title for title in non_friendly_classic_long_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(country.strip().lower() not in ["united states", "united kingdom"] for country in
+                                  title.country.lower().split(', '))]
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_non_friendly_long_classic_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_non_friendly_long_classic_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_friendly_classic_long_data criteria")
 
                 # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
                 elif classic_preference == "no":
@@ -376,6 +435,28 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                 directions.append("left")
                                 criteria.append("Short Titles")
                                 recommended_titles = non_friendly_modern_short_data
+
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_short_non_friendly_modern_short_data = [title for title in non_friendly_modern_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_short_non_friendly_modern_short_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_short_non_friendly_modern_short_data
+                                # If the user wants to watch a title from another country outside the US/UK, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_short_non_friendly_modern_short_data = [title for title in non_friendly_modern_short_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                                  country.strip().lower() not in ["united states", "united kingdom"] for country in
+                                  title.country.lower().split(', '))]
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_short_non_friendly_modern_short_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_short_non_friendly_modern_short_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_friendly_modern_short_data criteria")
+
                         # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
                         elif duration_preference == "no":
                             non_friendly_modern_long_data = decide_title_type(selected_title, duration_preference, non_classic_non_child_friendly_data)
@@ -384,6 +465,28 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                 directions.append("right")
                                 criteria.append("Long Titles")
                                 recommended_titles = non_friendly_modern_long_data
+
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_non_friendly_modern_long_data = [title for title in non_friendly_modern_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_non_friendly_modern_long_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_non_friendly_modern_long_data
+                                # If the user wants to watch a title from another country outside the US/UK, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_non_friendly_modern_long_data = [title for title in non_friendly_modern_long_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
+                                  country.strip().lower() not in ["united states", "united kingdom"] for country in
+                                  title.country.lower().split(', '))]
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_non_friendly_modern_long_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_non_friendly_modern_long_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_friendly_modern_long_data criteria")
+
 
     # Call the function build_path to build the path based on the directions and criteria and create new node objects
     # Only called here because it's always going to take 1 certain path and will end up here, this way it's only called once

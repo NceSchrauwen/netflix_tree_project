@@ -2,6 +2,10 @@
 #Date: 11/04/2021
 from collections import deque
 
+import mysql
+import mysql.connector
+from title import NetflixTitle
+
 country_preference = None
 duration_preference = None
 classic_preference = None
@@ -66,20 +70,6 @@ def get_user_input():
             break
         else:
             print("Invalid input. Please enter 'yes' or 'no'.")
-
-def get_user_scores(num_suggestions):
-    while True:
-        try:
-            user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ")
-            selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
-            # Validate indices (within range)
-            valid_indices = [idx for idx in selected_indices if 1 <= idx <= num_suggestions]
-            if len(valid_indices) == len(selected_indices):
-                break
-            else:
-                print("Invalid input. Please enter valid indices.")
-        except ValueError:
-            print("Invalid input. Please enter valid indices (positive integers).")
 
 # to build the decision tree and get the recommendations based on the user input
 def build_decision_tree(netflix_data, selected_title, num_suggestions):
@@ -548,4 +538,86 @@ def get_recommended_titles(node, num_suggestions):
     return recommended_titles[:num_suggestions]
 
 
+# Update the score of the title in the database
+def db_update_score(title):
+    # Connecting with the db
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+        cursor = mydb.cursor()
 
+        # Increment the score by 5 for the given title
+        cursor.execute(f'UPDATE netflix_movies SET score = score + 5 WHERE show_id = {title.show_id};')
+        # print(f'Title {title.title} ({title.show_id}) has been scored.')  # Print the new score
+
+        # Commit the changes to the db
+        mydb.commit()
+        print("Score updated successfully in the database.")
+
+        # Get the updated title from the database AFTER committing the previous changes
+        cursor.execute(f'SELECT * FROM netflix_movies WHERE show_id = {title.show_id};')
+        # Fetch the updated title in the form of a NetflixTitle object
+        updated_title = NetflixTitle(*cursor.fetchone())
+
+        # Print the new score
+        print(f'Title {updated_title.title} ({updated_title.show_id}) has been scored. Score of this title is now: {updated_title.score}')
+
+    # Handle errors if any
+    except mysql.connector.Error as err:
+        print(f"Error updating score in the database: {err}")
+
+    # Close the connection to the db
+    finally:
+        if mydb:
+            cursor.close()
+            mydb.close()
+
+# Ask the user to confirm if they want to continue without entering any indices
+def confirm_continuation():
+    while True:
+        confirmation = input("No indices entered. Do you want to continue? (yes/no): ").strip().lower()
+        if confirmation == "yes":
+            return True
+        elif confirmation == "no":
+            print("Skipping scoring titles.")
+            return False
+        else:
+            print("Invalid input. Please enter 'yes' or 'no'.")
+
+# Get user input for the scores of the recommended titles, this will be used to calculate the score of the titles
+def get_user_scores(recommended_titles):
+    while True:
+        # Ask the user to enter the indices of the titles they want to score
+        user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ")
+        # If there's no input form the user, ask for confirmation to continue
+        if not user_input.strip():
+            if confirm_continuation():
+                continue # Continue the loop
+            else:
+                return # Exit the function
+
+        try:
+            selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
+            # If the index is within the range of the recommended titles then it's a valid index
+            valid_indices = [idx for idx in selected_indices if 1 <= idx <= len(recommended_titles)]
+            # If the length of the valid indices is equal to the length of the selected indices then break the loop
+            if len(valid_indices) == len(selected_indices):
+                break
+            else:
+                print("Invalid input. Please enter valid indices.") # Invalid indices, retry
+        except ValueError:
+            print("Invalid input. Please enter valid indices (positive integers).") # Invalid input, retry
+
+    # Loop through the indexes and update the score of the title in the database
+    for index in valid_indices:
+        if 1 <= index <= len(recommended_titles): # Check if the index is within the range of the recommended titles
+            title = recommended_titles[index - 1]
+            # Call the function to update the score of the title within the database
+            db_update_score(title)
+        else:
+            print(f"Invalid index: {index}. Skipping this index.") # Index out of bounds

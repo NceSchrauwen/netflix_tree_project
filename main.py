@@ -5,7 +5,7 @@
 import random
 from title import NetflixTitle
 import mysql.connector
-from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles
 
 global netflix_titles
 
@@ -37,6 +37,32 @@ def connect_db(num_results=200):
     # print_attributes(netflix_titles)
 
     return netflix_titles
+
+# Function to clean the slate of all scores within the db to 0
+def clean_slate():
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+        cursor = mydb.cursor()
+
+        # Increment the score by 5 for the given title
+        cursor.execute(f'UPDATE netflix_movies SET score = 0;')
+
+        mydb.commit()
+        print("Score updated successfully in the database.")
+
+    except mysql.connector.Error as err:
+        print(f"Error updating score in the database: {err}")
+
+    finally:
+        if mydb:
+            cursor.close()
+            mydb.close()
 
 
 def print_attributes(netflix_titles):
@@ -126,6 +152,9 @@ if __name__ == '__main__':
     # Connect to the database and retrieve the Netflix titles
     netflix_titles = connect_db(num_results=150)
 
+    # Reset the all scores of all titles to 0
+    clean_slate()
+
     #original sample title pick function
     selected_title = get_sample_title(netflix_titles)
 
@@ -151,5 +180,5 @@ if __name__ == '__main__':
     new_print_title_attributes(recommended_titles)
 
     # Call it here in order to get the user scores AFTER the recommendations have been printed out
-    get_user_scores(num_suggestions)
+    get_user_scores(recommended_titles)
 

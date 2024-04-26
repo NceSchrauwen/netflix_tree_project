@@ -5,7 +5,7 @@
 import random
 from title import NetflixTitle
 import mysql.connector
-from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores
 
 global netflix_titles
 
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     netflix_titles = connect_db(num_results=150)
 
     # Reset the all scores of all titles to 0
-    clean_slate()
+    # clean_slate()
 
     #original sample title pick function
     selected_title = get_sample_title(netflix_titles)
@@ -181,4 +181,27 @@ if __name__ == '__main__':
 
     # Call it here in order to get the user scores AFTER the recommendations have been printed out
     get_user_scores(recommended_titles)
+
+    # Get the scored titles from the database
+    scored_titles = get_scored_titles_from_db()
+    # Get non-scored titles from the database
+    non_scored_titles = get_non_scored_titles_from_db()
+
+    # Print the scored titles
+    # for scored_title in scored_titles:
+    #     print(f"Title: {scored_title.title} - Cast: {scored_title.cast} - Score: {scored_title.score}")
+
+    # Print the non-scored titles
+    # for non_scored_title in non_scored_titles:
+    #     print(f"Title: {non_scored_title.title} - Listed in: {non_scored_title.listed_in} - Score: {non_scored_title.score}")
+
+    # Get the recommendations based on similarity
+    jaccard_similarities = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
+    # print(f"Similarity score: {jaccard_similarities}")
+
+    # Return and print all the titles that have a positive similarity score
+    positive_scores = filter_positive_similarity_scores(jaccard_similarities)
+    print(f"Filtered positive similarity scores: {positive_scores}")
+
+
 

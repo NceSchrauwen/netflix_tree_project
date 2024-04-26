@@ -5,6 +5,8 @@ from collections import deque
 import mysql
 import mysql.connector
 from title import NetflixTitle
+from scored_title import ScoredTitle
+from non_scored_title import NonScoredTitle
 
 country_preference = None
 duration_preference = None
@@ -589,6 +591,16 @@ def confirm_continuation():
         else:
             print("Invalid input. Please enter 'yes' or 'no'.")
 
+def incorporate_user_feedback(recommended_titles, valid_indices):
+    # Loop through the indexes and update the score of the title in the database
+    for index in valid_indices:
+        if 1 <= index <= len(recommended_titles):  # Check if the index is within the range of the recommended titles
+            title = recommended_titles[index - 1]
+            # Call the function to update the score of the title within the database
+            db_update_score(title)
+        else:
+            print(f"Invalid index: {index}. Skipping this index.")  # Index out of bounds
+
 # Get user input for the scores of the recommended titles, this will be used to calculate the score of the titles
 def get_user_scores(recommended_titles):
     while True:
@@ -613,11 +625,116 @@ def get_user_scores(recommended_titles):
         except ValueError:
             print("Invalid input. Please enter valid indices (positive integers).") # Invalid input, retry
 
-    # Loop through the indexes and update the score of the title in the database
-    for index in valid_indices:
-        if 1 <= index <= len(recommended_titles): # Check if the index is within the range of the recommended titles
-            title = recommended_titles[index - 1]
-            # Call the function to update the score of the title within the database
-            db_update_score(title)
-        else:
-            print(f"Invalid index: {index}. Skipping this index.") # Index out of bounds
+    incorporate_user_feedback(recommended_titles, valid_indices)
+
+def get_scored_titles_from_db():
+    scored_titles = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score FROM netflix_movies WHERE score != 0")
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+        # print(f'--- Scored titles ---')
+
+        # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        scored_titles.append(NetflixTitle(*row))
+
+    #Use for loop to print the scored titles
+    return scored_titles
+
+def get_non_scored_titles_from_db():
+    non_scored_titles = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score FROM netflix_movies WHERE score = 0")
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+        # print(f'--- Non-Scored titles ---')
+
+        # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        non_scored_titles.append(NonScoredTitle(*row))
+
+    #Use for loop to print the scored titles
+    return non_scored_titles
+
+def calculate_jaccard_similarity(set1, set2):
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    return intersection / union if union != 0 else 0
+
+def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
+    jaccard_similarities = {}
+    for scored_title in scored_titles:
+        scored_cast = set(scored_title.cast.split(",")) if scored_title.cast else set()
+        jaccard_similarities[scored_title.title] = {}  # Nested dictionary to store the Jaccard similarities
+        for non_scored_title in non_scored_titles:
+            non_scored_cast = set(non_scored_title.cast.split(",")) if non_scored_title.cast else set()
+            similarity_score = calculate_jaccard_similarity(scored_cast, non_scored_cast)
+            jaccard_similarities[scored_title.title][non_scored_title.title] = similarity_score
+
+    return jaccard_similarities
+
+# Function to be able to track which titles have a similarity score greater than 0
+def filter_positive_similarity_scores(jaccard_similarities):
+    positive_scores = {}
+    for scored_title, similarity_dict in jaccard_similarities.items():
+        positive_similarity_dict = {title: score for title, score in similarity_dict.items() if score > 0}
+        if positive_similarity_dict:  # Check if there are positive similarity scores for the current scored title
+            positive_scores[scored_title] = positive_similarity_dict
+
+    if not positive_scores:
+        print("No positive similarity scores found.")
+
+    # TODO: Use the output of the positive scores (aka all the titles that have some compatibility with the scored titles) to be able to use in the decision tree
+    return positive_scores
+

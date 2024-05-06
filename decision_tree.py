@@ -4,6 +4,7 @@ from collections import deque
 
 import mysql
 import mysql.connector
+
 from title import NetflixTitle
 from scored_title import ScoredTitle
 from non_scored_title import NonScoredTitle
@@ -16,6 +17,9 @@ criteria = []
 criterion = None
 recommended_titles = []
 child_friendly_preference = None
+threshold = 0.1
+updated_jaccard_titles = []
+
 
 
 # constructor of the node class
@@ -32,6 +36,196 @@ class DecisionTreeNode:
                f"Left Child: {self.left_child}\n" \
                f"Right Child: {self.right_child}\n" \
             # f"Recommended Titles: {self.recommended_titles}\n"
+
+def get_scored_titles_from_db():
+    scored_titles = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE score != 0")
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+        # print(f'--- Scored titles ---')
+
+        # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        scored_titles.append(ScoredTitle(*row))
+
+    #Use for loop to print the scored titles
+    return scored_titles
+
+def get_non_scored_titles_from_db():
+    non_scored_titles = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE score = 0")
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+        # print(f'--- Non-Scored titles ---')
+
+        # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        non_scored_titles.append(NonScoredTitle(*row))
+
+    #Use for loop to print the scored titles
+    return non_scored_titles
+
+# Function to update the jaccard similarity scores in the database
+def update_jaccard_similarity(jaccard_data):
+    updated_jaccard_titles = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Expects more values then 2 because of jaccard_data being a nested list of tuples so it needs to be unpacked by using *_ in the for loop in order for the tile and jaccard_similarity to be extracted
+        for title, jaccard_similarity in jaccard_data.items():
+            cursor.execute(
+                f'UPDATE netflix_movies SET jaccard_similarity = {jaccard_similarity} WHERE title = "{title}";')  # To wrap title in single quotes to prevent future SQL syntax errors
+
+        mydb.commit()  # Commit the transaction
+
+        print(f"Number of rows updated: {cursor.rowcount}") # Print the number of rows updated
+
+        # Execute the SQL query to select titles with jaccard scores above 0
+        select_query = "SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE jaccard_similarity > 0"
+        cursor.execute(select_query)
+        updated_jaccard_titles = [NetflixTitle(*row) for row in cursor.fetchall()]
+
+        # print(f"Number of rows updated: {cursor.rowcount}")
+        print(f"Number of positive jaccard titles found AFTER updating: {len(updated_jaccard_titles)}")
+
+        if updated_jaccard_titles:
+            print(f'--- Positive jaccard titles ---')
+            for title in updated_jaccard_titles:
+                print(
+                    f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
+        else:
+            print("No positive jaccard titles found.")
+
+    except Exception as e:
+        print("Error:", e)
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+    return updated_jaccard_titles
+
+# Function to calculate the Jaccard similarity between two sets
+def calculate_jaccard_similarity(set1, set2):
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    return intersection / union if union != 0 else 0
+
+# def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
+#     jaccard_similarities = {}
+#     for scored_title in scored_titles:
+#         scored_cast = set(scored_title.cast.split(",")) if scored_title.cast else set()
+#         jaccard_similarities[scored_title.title] = {}  # Nested dictionary to store the Jaccard similarities
+#         for non_scored_title in non_scored_titles:
+#             non_scored_cast = set(non_scored_title.cast.split(",")) if non_scored_title.cast else set()
+#             similarity_score = calculate_jaccard_similarity(scored_cast, non_scored_cast)
+#             jaccard_similarities[scored_title.title][non_scored_title.title] = similarity_score
+#
+#     return jaccard_similarities
+
+# Compare the scored titles and their cast to the non-scored titles and their cast to get the jaccard similarity scores
+def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
+    jaccard_similarities_scored = []
+    jaccard_similarities_non_scored = []
+
+    for scored_title in scored_titles:
+        scored_cast = set(scored_title.cast.split(",")) if scored_title.cast else set()
+        for non_scored_title in non_scored_titles:
+            non_scored_cast = set(non_scored_title.cast.split(",")) if non_scored_title.cast else set()
+            similarity_score = calculate_jaccard_similarity(scored_cast, non_scored_cast)
+            jaccard_similarities_scored.append((scored_title.title, similarity_score))
+            jaccard_similarities_non_scored.append((non_scored_title.title, similarity_score))
+
+    return jaccard_similarities_scored, jaccard_similarities_non_scored
+
+# Function to filter the positive similarity scores in the jaccard similarities for testing purposes to compare to the scores in the database and to use in the decision tree
+def filter_positive_similarity_scores(jaccard_similarities, threshold):
+    positive_scores = {} # Initialize an empty dictionary to store the positive similarity scores
+
+    # Loop through the outer list
+    for inner_tuple in jaccard_similarities:
+        # Unpack the inner tuple
+        for title, jaccard_similarity in inner_tuple:
+            # print(f"- Positive Title: {title} AND Jaccard Similarity: {jaccard_similarity} -")
+            try:
+                if jaccard_similarity >= threshold:  # If the jaccard similarity is above the threshold add the jaccard similarity to the positive scores
+                    positive_scores[title] = jaccard_similarity
+            except ValueError:
+                print(f"Invalid score value: {jaccard_similarity}")
+
+    if not positive_scores:
+        print("No positive similarity scores found.")
+
+    print(f"Amount of positive similarity scores: {len(positive_scores)}")
+
+    # TODO: Use the output of the positive scores (aka all the titles that have some compatibility with the scored titles) to be able to use in the decision tree
+    return positive_scores
+
 
 # to get user input on multiple criteria
 def get_user_input():
@@ -234,6 +428,42 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_short_classic_data
+
+                                    # # TODO: Add new criteria here to test
+                                    # scored_titles = get_scored_titles_from_db()
+                                    # non_scored_titles = get_non_scored_titles_from_db()
+                                    # jaccard_similarities_titles = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
+                                    #
+                                    # # Set the jaccard similarity scores for the scored and non-scored titles
+                                    # if jaccard_similarities_titles:
+                                    #     for scored_title.title in scored_titles:
+                                    #         if scored_title.title in jaccard_similarities_titles:
+                                    #             scored_title.set_jaccard_score(jaccard_similarities_titles[scored_title.title])
+                                    #     for non_scored_title in non_scored_titles:
+                                    #         if non_scored_title.title in jaccard_similarities_titles:
+                                    #             non_scored_title.set_jaccard_score(jaccard_similarities_titles[non_scored_title.title])
+                                    #
+                                    # if jaccard_similarities_titles:
+                                    #     positive_scores = filter_positive_similarity_scores(jaccard_similarities_titles)
+                                    #     print(f"!! -- Jaccard similarities: {len(jaccard_similarities_titles)} -- !!")
+                                    #     print(f"Positive similarity scores: {len(positive_scores)}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                             # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
@@ -627,114 +857,5 @@ def get_user_scores(recommended_titles):
 
     incorporate_user_feedback(recommended_titles, valid_indices)
 
-def get_scored_titles_from_db():
-    scored_titles = []
 
-    try:
-        # Connect to the database
-        mydb = mysql.connector.connect(
-            host="localhost",
-            port="8080",
-            user="Admin",
-            password="Brownie#99",
-            database="netflix_titles"
-        )
-
-        # Create a cursor to execute SQL queries
-        cursor = mydb.cursor()
-
-        # Execute the SQL query to select scored titles
-        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score FROM netflix_movies WHERE score != 0")
-
-        # Fetch all the rows
-        rows = cursor.fetchall()
-
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-
-    finally:
-        # Close the database connection
-        if mydb.is_connected():
-            cursor.close()
-            mydb.close()
-
-        # print(f'--- Scored titles ---')
-
-        # Loop through the rows and create NetflixTitle objects
-    for row in rows:
-        scored_titles.append(NetflixTitle(*row))
-
-    #Use for loop to print the scored titles
-    return scored_titles
-
-def get_non_scored_titles_from_db():
-    non_scored_titles = []
-
-    try:
-        # Connect to the database
-        mydb = mysql.connector.connect(
-            host="localhost",
-            port="8080",
-            user="Admin",
-            password="Brownie#99",
-            database="netflix_titles"
-        )
-
-        # Create a cursor to execute SQL queries
-        cursor = mydb.cursor()
-
-        # Execute the SQL query to select scored titles
-        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score FROM netflix_movies WHERE score = 0")
-
-        # Fetch all the rows
-        rows = cursor.fetchall()
-
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-
-    finally:
-        # Close the database connection
-        if mydb.is_connected():
-            cursor.close()
-            mydb.close()
-
-        # print(f'--- Non-Scored titles ---')
-
-        # Loop through the rows and create NetflixTitle objects
-    for row in rows:
-        non_scored_titles.append(NonScoredTitle(*row))
-
-    #Use for loop to print the scored titles
-    return non_scored_titles
-
-def calculate_jaccard_similarity(set1, set2):
-    intersection = len(set1.intersection(set2))
-    union = len(set1.union(set2))
-    return intersection / union if union != 0 else 0
-
-def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
-    jaccard_similarities = {}
-    for scored_title in scored_titles:
-        scored_cast = set(scored_title.cast.split(",")) if scored_title.cast else set()
-        jaccard_similarities[scored_title.title] = {}  # Nested dictionary to store the Jaccard similarities
-        for non_scored_title in non_scored_titles:
-            non_scored_cast = set(non_scored_title.cast.split(",")) if non_scored_title.cast else set()
-            similarity_score = calculate_jaccard_similarity(scored_cast, non_scored_cast)
-            jaccard_similarities[scored_title.title][non_scored_title.title] = similarity_score
-
-    return jaccard_similarities
-
-# Function to be able to track which titles have a similarity score greater than 0
-def filter_positive_similarity_scores(jaccard_similarities):
-    positive_scores = {}
-    for scored_title, similarity_dict in jaccard_similarities.items():
-        positive_similarity_dict = {title: score for title, score in similarity_dict.items() if score > 0}
-        if positive_similarity_dict:  # Check if there are positive similarity scores for the current scored title
-            positive_scores[scored_title] = positive_similarity_dict
-
-    if not positive_scores:
-        print("No positive similarity scores found.")
-
-    # TODO: Use the output of the positive scores (aka all the titles that have some compatibility with the scored titles) to be able to use in the decision tree
-    return positive_scores
 

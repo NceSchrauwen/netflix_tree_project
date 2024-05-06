@@ -5,7 +5,7 @@
 import random
 from title import NetflixTitle
 import mysql.connector
-from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold
 
 global netflix_titles
 
@@ -197,11 +197,17 @@ if __name__ == '__main__':
 
     # Get the recommendations based on similarity
     jaccard_similarities = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
-    # print(f"Similarity score: {jaccard_similarities}")
+    print(f"Similarity score: {jaccard_similarities}")
+    # print(f'Type of similarity score: {type(jaccard_similarities)}') # Nested tuples within a list inside a tuple
 
     # Return and print all the titles that have a positive similarity score
-    positive_scores = filter_positive_similarity_scores(jaccard_similarities)
+    positive_scores = filter_positive_similarity_scores(jaccard_similarities, threshold)
     print(f"Filtered positive similarity scores: {positive_scores}")
+    # print(f'Type of positive scores: {type(positive_scores)}') # Dictionary
+
+    # Update the jaccard similarity scores in the database - DON'T FORGET TO TURN THIS ON TO TEST THE FUNCTIONALITY
+    updated_jaccard_scores = update_jaccard_similarity(positive_scores)
+    print(f"Updated jaccard similarity scores: {updated_jaccard_scores}")
 
 
 

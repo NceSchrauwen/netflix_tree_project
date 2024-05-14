@@ -1,5 +1,6 @@
 #Developed by: Nina Schrauwen
 #Date: 11/04/2021
+import random
 from collections import deque
 
 import mysql
@@ -17,8 +18,11 @@ criteria = []
 criterion = None
 recommended_titles = []
 child_friendly_preference = None
-threshold = 0.1
+threshold = 0.0
+recommended_threshold = 0.01
 updated_jaccard_titles = []
+query_results = []
+selected_title = []
 
 
 
@@ -117,6 +121,55 @@ def get_non_scored_titles_from_db():
     #Use for loop to print the scored titles
     return non_scored_titles
 
+# Function to get all the matching titles and their information from the database
+def get_user_query_title_from_db(query_title):
+    query_results = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        query = "SELECT * FROM netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
+        cursor.execute(query)
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+        # print(f'--- Non-Scored titles ---')
+
+        # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        query_results.append(NetflixTitle(*row))
+
+    if query_results:
+        print(f'--- Query results ---')
+        for index, result in enumerate(query_results):
+            print(
+                f"{index + 1}. Title: {result.title}, Show ID: {result.show_id}, Type: {result.type}, Listed In: {result.listed_in}, Score: {result.score}, Jaccard Similarity: {result.jaccard_similarity}")
+
+    #Use for loop to print the scored titles
+    return query_results
+
+
 # Function to update the jaccard similarity scores in the database
 def update_jaccard_similarity(jaccard_data):
     updated_jaccard_titles = []
@@ -152,10 +205,11 @@ def update_jaccard_similarity(jaccard_data):
         print(f"Number of positive jaccard titles found AFTER updating: {len(updated_jaccard_titles)}")
 
         if updated_jaccard_titles:
-            print(f'--- Positive jaccard titles ---')
-            for title in updated_jaccard_titles:
-                print(
-                    f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
+            print(f'Titles are being updated with the jaccard similarity scores.')
+            # print(f'--- Positive jaccard titles ---')
+            # for title in updated_jaccard_titles:
+            #     print(
+            #         f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
         else:
             print("No positive jaccard titles found.")
 
@@ -176,18 +230,6 @@ def calculate_jaccard_similarity(set1, set2):
     union = len(set1.union(set2))
     return intersection / union if union != 0 else 0
 
-# def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
-#     jaccard_similarities = {}
-#     for scored_title in scored_titles:
-#         scored_cast = set(scored_title.cast.split(",")) if scored_title.cast else set()
-#         jaccard_similarities[scored_title.title] = {}  # Nested dictionary to store the Jaccard similarities
-#         for non_scored_title in non_scored_titles:
-#             non_scored_cast = set(non_scored_title.cast.split(",")) if non_scored_title.cast else set()
-#             similarity_score = calculate_jaccard_similarity(scored_cast, non_scored_cast)
-#             jaccard_similarities[scored_title.title][non_scored_title.title] = similarity_score
-#
-#     return jaccard_similarities
-
 # Compare the scored titles and their cast to the non-scored titles and their cast to get the jaccard similarity scores
 def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
     jaccard_similarities_scored = []
@@ -203,6 +245,7 @@ def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
 
     return jaccard_similarities_scored, jaccard_similarities_non_scored
 
+
 # Function to filter the positive similarity scores in the jaccard similarities for testing purposes to compare to the scores in the database and to use in the decision tree
 def filter_positive_similarity_scores(jaccard_similarities, threshold):
     positive_scores = {} # Initialize an empty dictionary to store the positive similarity scores
@@ -213,7 +256,7 @@ def filter_positive_similarity_scores(jaccard_similarities, threshold):
         for title, jaccard_similarity in inner_tuple:
             # print(f"- Positive Title: {title} AND Jaccard Similarity: {jaccard_similarity} -")
             try:
-                if jaccard_similarity >= threshold:  # If the jaccard similarity is above the threshold add the jaccard similarity to the positive scores
+                if jaccard_similarity != threshold:  # If the jaccard similarity is not equal to the threshold then add it to the positive scores dictionary
                     positive_scores[title] = jaccard_similarity
             except ValueError:
                 print(f"Invalid score value: {jaccard_similarity}")
@@ -223,7 +266,6 @@ def filter_positive_similarity_scores(jaccard_similarities, threshold):
 
     print(f"Amount of positive similarity scores: {len(positive_scores)}")
 
-    # TODO: Use the output of the positive scores (aka all the titles that have some compatibility with the scored titles) to be able to use in the decision tree
     return positive_scores
 
 
@@ -344,6 +386,38 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
+
+def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
+    filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
+
+    print(f'(Before) Length of filtered titles: {len(filtered_titles)}')
+
+    # If not enough titles are found based on the threshold, then add back titles from the recommended_titles list
+    if len(filtered_titles) < num_suggestions:
+        num_to_add = num_suggestions - len(filtered_titles)
+        print(f'Number of titles to add: {num_to_add}')
+        filtered_titles.extend(recommended_titles[:num_to_add])
+
+    print(f'Length of filtered titles: {len(filtered_titles)}')
+
+    # Filter out all of the duplicate entries from the filtered titles list
+    filtered_titles = list(set(filtered_titles))
+
+    # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
+    # the list
+    random.shuffle(filtered_titles)
+
+    print(f'--- Filtered Titles ---')
+    for title in filtered_titles:
+        print(f'Filtered Title: {title.title}, Show-ID: {title.show_id}, Jaccard Similarity: {title.jaccard_similarity}')
+
+    # Return the filtered titles limited to the number of suggestions
+    return filtered_titles[:num_suggestions]
+
+# Function to search if there is a substring that matches US or UK in the country attribute of the title.country
+def is_us_or_uk_title(title):
+    return title.country and any(country_term in title.country.lower() for country_term in ["united states", "united kingdom"])
+
 # to recursively run through the decision tree searching for the best recommendation
 def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
     global country_preference
@@ -371,6 +445,7 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
         similar_genre_data = [title for title in netflix_data if any(
             genre.lower() in title.listed_in.lower() for genre in selected_title.listed_in.split(','))]
 
+        # For testing purposes to see the amount of similar genre data
         # print(f'Similar genre data: {len(similar_genre_data)}')
         # for title in similar_genre_data:
         #     print(title)
@@ -422,47 +497,13 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                             # print(f'!!! Short classic data: {len(short_classic_data)} !!!')
                             # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
-                                us_uk_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                us_uk_short_classic_data = [title for title in short_classic_data if is_us_or_uk_title(title)]
+
                                 # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_short_classic_data:
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_short_classic_data
-
-                                    # # TODO: Add new criteria here to test
-                                    # scored_titles = get_scored_titles_from_db()
-                                    # non_scored_titles = get_non_scored_titles_from_db()
-                                    # jaccard_similarities_titles = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
-                                    #
-                                    # # Set the jaccard similarity scores for the scored and non-scored titles
-                                    # if jaccard_similarities_titles:
-                                    #     for scored_title.title in scored_titles:
-                                    #         if scored_title.title in jaccard_similarities_titles:
-                                    #             scored_title.set_jaccard_score(jaccard_similarities_titles[scored_title.title])
-                                    #     for non_scored_title in non_scored_titles:
-                                    #         if non_scored_title.title in jaccard_similarities_titles:
-                                    #             non_scored_title.set_jaccard_score(jaccard_similarities_titles[non_scored_title.title])
-                                    #
-                                    # if jaccard_similarities_titles:
-                                    #     positive_scores = filter_positive_similarity_scores(jaccard_similarities_titles)
-                                    #     print(f"!! -- Jaccard similarities: {len(jaccard_similarities_titles)} -- !!")
-                                    #     print(f"Positive similarity scores: {len(positive_scores)}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
                             # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
@@ -488,7 +529,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                             # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
-                                us_uk_long_classic_data = [title for title in long_classic_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                us_uk_long_classic_data = [title for title in long_classic_data if is_us_or_uk_title(title)]
+
                                 # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_long_classic_data:
                                     directions.append("left")
@@ -528,7 +570,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                             # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
-                                us_uk_short_non_classic_data = [title for title in non_classic_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                us_uk_short_non_classic_data = [title for title in non_classic_short_data if is_us_or_uk_title(title)]
+
                                 # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_short_non_classic_data:
                                     directions.append("left")
@@ -558,7 +601,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                             # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                             if country_preference == "yes":
-                                us_uk_long_non_classic_data = [title for title in non_classic_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                us_uk_long_non_classic_data = [title for title in non_classic_long_data if is_us_or_uk_title(title)]
+
                                 # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                 if us_uk_long_non_classic_data:
                                     directions.append("left")
@@ -607,7 +651,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                                 # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                                 if country_preference == "yes":
-                                    us_uk_short_non_friendly_short_classic_data = [title for title in non_friendly_classic_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    us_uk_short_non_friendly_short_classic_data = [title for title in non_friendly_classic_short_data if is_us_or_uk_title(title)]
+
                                     # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                     if us_uk_short_non_friendly_short_classic_data:
                                         directions.append("left")
@@ -637,7 +682,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                                 # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                                 if country_preference == "yes":
-                                    us_uk_long_non_friendly_long_classic_data = [title for title in non_friendly_classic_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    us_uk_long_non_friendly_long_classic_data = [title for title in non_friendly_classic_long_data if is_us_or_uk_title(title)]
+
                                     # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                     if us_uk_long_non_friendly_long_classic_data:
                                         directions.append("left")
@@ -675,7 +721,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                                 # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                                 if country_preference == "yes":
-                                    us_uk_short_non_friendly_modern_short_data = [title for title in non_friendly_modern_short_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    us_uk_short_non_friendly_modern_short_data = [title for title in non_friendly_modern_short_data if is_us_or_uk_title(title)]
+
                                     # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                     if us_uk_short_non_friendly_modern_short_data:
                                         directions.append("left")
@@ -705,7 +752,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
                                 # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
                                 if country_preference == "yes":
-                                    us_uk_non_friendly_modern_long_data = [title for title in non_friendly_modern_long_data if title.country is not None and title.country.lower() in ["united states", "united kingdom"]]
+                                    us_uk_non_friendly_modern_long_data = [title for title in non_friendly_modern_long_data if is_us_or_uk_title(title)]
+
                                     # Add the new list of filtered US/UK titles into a decision tree node on the left side
                                     if us_uk_non_friendly_modern_long_data:
                                         directions.append("left")
@@ -767,7 +815,8 @@ def get_recommended_titles(node, num_suggestions):
     print(f"Recommended titles so far: {len(recommended_titles)}")
 
     # return the recommended titles list and limit the amount of suggestions to the user
-    return recommended_titles[:num_suggestions]
+    return recommended_titles
+    # return recommended_titles[:num_suggestions]
 
 
 # Update the score of the title in the database
@@ -813,13 +862,11 @@ def db_update_score(title):
 def confirm_continuation():
     while True:
         confirmation = input("No indices entered. Do you want to continue? (yes/no): ").strip().lower()
-        if confirmation == "yes":
-            return True
-        elif confirmation == "no":
+        if confirmation not in ("yes", "y"):
             print("Skipping scoring titles.")
             return False
         else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
+            return True
 
 def incorporate_user_feedback(recommended_titles, valid_indices):
     # Loop through the indexes and update the score of the title in the database
@@ -835,13 +882,15 @@ def incorporate_user_feedback(recommended_titles, valid_indices):
 def get_user_scores(recommended_titles):
     while True:
         # Ask the user to enter the indices of the titles they want to score
-        user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ")
+        user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ").strip().lower()
+        # print(f'User input: {user_input}')
+
         # If there's no input form the user, ask for confirmation to continue
-        if not user_input.strip():
+        if not user_input:
             if confirm_continuation():
-                continue # Continue the loop
+                continue
             else:
-                return # Exit the function
+                return None  # Exit the function if the user doesn't want to continue
 
         try:
             selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
@@ -849,13 +898,78 @@ def get_user_scores(recommended_titles):
             valid_indices = [idx for idx in selected_indices if 1 <= idx <= len(recommended_titles)]
             # If the length of the valid indices is equal to the length of the selected indices then break the loop
             if len(valid_indices) == len(selected_indices):
-                break
+                incorporate_user_feedback(recommended_titles, valid_indices)
+                return valid_indices
             else:
-                print("Invalid input. Please enter valid indices.") # Invalid indices, retry
+                print("Invalid input. Please enter valid indices.")  # Invalid indices, retry
         except ValueError:
-            print("Invalid input. Please enter valid indices (positive integers).") # Invalid input, retry
+            print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
 
-    incorporate_user_feedback(recommended_titles, valid_indices)
+# TODO: Fix this function
+def get_flexible_title_query():
+    global query_results
+    global selected_titles
+
+    query_results = []
+
+    while True:  # Loop until we get valid scores or the user exits
+
+        search_title = input("Enter the (a part of the) title you'd want to search to recommend: ").strip().lower()
+
+        if not search_title:
+            confirmation = input("No title entered. Do you want to continue? (yes/no): ").strip().lower()
+            if confirmation not in ("yes", "y"):
+                print("Skipping scoring titles.")
+                return None
+
+        print(f'Searching for titles with the query: {search_title}')
+        query_results = get_user_query_title_from_db(search_title)
+
+        if query_results:
+            score_confirmation = input("Do you want to score any of these titles? (yes/no): ").strip().lower()
+            if score_confirmation.isdigit():
+                print("Invalid input, please enter yes or no.")
+            elif score_confirmation in ("yes", "y"):
+                try:
+                    choice = input(
+                        "Enter the indices of the titles you want to score of the query results (e.g., '1, 2, 4'): ")
+                    selected_indices = [int(idx.strip()) for idx in choice.split(",")]
+                    valid_indices = [idx - 1 for idx in selected_indices if
+                                     1 <= idx <= len(query_results)]  # Subtract 1 for indexing
+
+                    if len(valid_indices) == len(selected_indices):
+                        selected_titles = [query_results[idx] for idx in valid_indices]
+                        print("You have selected the following titles for scoring:")
+                        for title in selected_titles:
+                            print(
+                                f"The following title will be scored (hopefully): {title.title}, Show-ID: {title.show_id}, "
+                                f"Jaccard Similarity: {title.jaccard_similarity}, Score: {title.score}")  # Do your
+                            # scoring logic with each title
+                            db_update_score(title)  # Update the score of the title in the database
+                        break  # Break out of the loop if input is valid
+                    else:
+                        print("Invalid input. Please enter valid indices.")
+                except ValueError:
+                    print("Invalid input. Please enter valid indices (positive integers).")
+            else:
+                print("Skipping scoring titles.")
+        else:
+            print("No titles found based on the search query.")
+            return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

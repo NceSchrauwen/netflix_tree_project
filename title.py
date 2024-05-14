@@ -2,7 +2,7 @@
 #Date: 11/04/2021
 class NetflixTitle:
     # constructor of class
-    def __init__(self, show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity=None):
+    def __init__(self, show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity):
         self.show_id = show_id
         self.type = type
         self.title = title

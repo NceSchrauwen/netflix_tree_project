@@ -5,7 +5,7 @@
 import random
 from title import NetflixTitle
 import mysql.connector
-from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold
+from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query
 
 global netflix_titles
 
@@ -72,7 +72,7 @@ def print_attributes(netflix_titles):
             print(f"{attribute}: {value}")
         print("---------")
 
-
+# To print the attributes of the sample or selected title
 def print_title_attributes(title):
     print("Title attributes:")
     print(f"Show ID: {title.show_id}")
@@ -88,7 +88,7 @@ def print_title_attributes(title):
     # print(f"Listed In Year: {title.date_added.year}")
     print("-------------------------------------------------")
 
-
+# To print and number the attributes of the recommended titles
 def new_print_title_attributes(titles):
     for index, title in enumerate(titles, start=1):
         print(f"-----------------{index} {title.title} {title.show_id} -----------------")
@@ -101,6 +101,8 @@ def new_print_title_attributes(titles):
         print(f'Country: {title.country}')
         print(f'Duration: {title.duration}')
         print(f'Age rating {title.rating}')
+        print(f'Jaccardn Similarity: {title.jaccard_similarity}')
+        print(f'Score: {title.score}')
         print("-------------------------------------------------")
     print("------------------------END-------------------------")
 
@@ -147,6 +149,29 @@ def get_movie_titles(netflix_titles):
 
     return selected_title
 
+# def get_show_id_title(netflix_titles, show_id):
+#     all_show_ids = [title.show_id for title in netflix_titles]
+#     if show_id in all_show_ids:
+#         print("Show ID exists!")
+#     else:
+#         print("Show ID not found in dataset.")
+#
+#     if not selected_title:
+#         print(f'Error: No title with show id {show_id} found.')
+#         return None
+#
+#     return all_show_ids
+
+def get_show_id_title(netflix_titles, show_id):
+    for title in netflix_titles:
+        if title.show_id == show_id:
+            print(f'Found show ID {show_id}')
+            return title  # Return the entire title object
+
+    print(f'Error: No title with show ID {show_id} found.')
+    raise ValueError(f'Invalid show ID: {show_id}')
+
+
 # Main function to run the application
 if __name__ == '__main__':
     # Connect to the database and retrieve the Netflix titles
@@ -165,11 +190,14 @@ if __name__ == '__main__':
     # For intensive testing of long movie titles with this genre use the following line
     # selected_title = get_standup_comedy_titles(netflix_titles)
 
+    # For testing using a specific show_id, country problem with id 2418
+    # selected_title = get_show_id_title(netflix_titles, 8005)
+
     # Prints the sample title and its attributes to the console
     print_title_attributes(selected_title)
 
     # Number of recommendations to be made
-    num_suggestions = 5
+    num_suggestions = 3
     # Build the decision tree
     decision_tree_root = build_decision_tree(netflix_titles, selected_title, num_suggestions)
     # #
@@ -177,10 +205,14 @@ if __name__ == '__main__':
     # #
     recommended_titles = get_recommended_titles(decision_tree_root, num_suggestions)
     # Prints the results and the attributes of the recommendations to the console
-    new_print_title_attributes(recommended_titles)
+    # new_print_title_attributes(recommended_titles)
+
+    # Filter the recommended titles based on jaccard_similarity score, use output from decision tree to filter
+    filtered_recommended_titles = filter_recommended_titles(recommended_titles, recommended_threshold, num_suggestions)
+    new_print_title_attributes(filtered_recommended_titles)
 
     # Call it here in order to get the user scores AFTER the recommendations have been printed out
-    get_user_scores(recommended_titles)
+    get_user_scores(filtered_recommended_titles) # Switch out the filtered_recommended_titles with recommended_titles to test the function
 
     # Get the scored titles from the database
     scored_titles = get_scored_titles_from_db()
@@ -197,17 +229,18 @@ if __name__ == '__main__':
 
     # Get the recommendations based on similarity
     jaccard_similarities = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
-    print(f"Similarity score: {jaccard_similarities}")
+    # print(f"Similarity score: {jaccard_similarities}")
     # print(f'Type of similarity score: {type(jaccard_similarities)}') # Nested tuples within a list inside a tuple
 
     # Return and print all the titles that have a positive similarity score
     positive_scores = filter_positive_similarity_scores(jaccard_similarities, threshold)
-    print(f"Filtered positive similarity scores: {positive_scores}")
+    # print(f"Filtered positive similarity scores: {positive_scores}")
     # print(f'Type of positive scores: {type(positive_scores)}') # Dictionary
 
-    # Update the jaccard similarity scores in the database - DON'T FORGET TO TURN THIS ON TO TEST THE FUNCTIONALITY
-    updated_jaccard_scores = update_jaccard_similarity(positive_scores)
-    print(f"Updated jaccard similarity scores: {updated_jaccard_scores}")
+    # Update the jaccard similarity scores in the database - DON'T FORGET TO TURN THIS ON TO UPDATE THE DATABASE (but don't forget to turn it off again either)
+    # updated_jaccard_scores = update_jaccard_similarity(positive_scores)
+
+    get_flexible_title_query()
 
 
 

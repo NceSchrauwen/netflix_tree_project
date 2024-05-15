@@ -205,11 +205,11 @@ def update_jaccard_similarity(jaccard_data):
         print(f"Number of positive jaccard titles found AFTER updating: {len(updated_jaccard_titles)}")
 
         if updated_jaccard_titles:
-            print(f'Titles are being updated with the jaccard similarity scores.')
-            # print(f'--- Positive jaccard titles ---')
-            # for title in updated_jaccard_titles:
-            #     print(
-            #         f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
+            # print(f'Titles are being updated with the jaccard similarity scores.')
+            print(f'--- Positive jaccard titles ---')
+            for title in updated_jaccard_titles:
+                print(
+                    f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
         else:
             print("No positive jaccard titles found.")
 
@@ -413,6 +413,13 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
 
     # Return the filtered titles limited to the number of suggestions
     return filtered_titles[:num_suggestions]
+
+# Check if the number of recommendations has been reached
+def check_reached_num_suggestions(recommended_titles, num_suggestions):
+    if len(recommended_titles) >= num_suggestions:
+        print(f'Desired number of recommendations reached; {len(recommended_titles)} asked: {num_suggestions}')
+    else:
+        print(f'Cannot retrieve desired number of recommendations based on current filters, current length: {len(recommended_titles)} asked: {num_suggestions}')
 
 # Function to search if there is a substring that matches US or UK in the country attribute of the title.country
 def is_us_or_uk_title(title):
@@ -905,7 +912,6 @@ def get_user_scores(recommended_titles):
         except ValueError:
             print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
 
-# TODO: Fix this function
 def get_flexible_title_query():
     global query_results
     global selected_titles
@@ -942,7 +948,7 @@ def get_flexible_title_query():
                         print("You have selected the following titles for scoring:")
                         for title in selected_titles:
                             print(
-                                f"The following title will be scored (hopefully): {title.title}, Show-ID: {title.show_id}, "
+                                f"The following title will be scored: {title.title}, Show-ID: {title.show_id}, "
                                 f"Jaccard Similarity: {title.jaccard_similarity}, Score: {title.score}")  # Do your
                             # scoring logic with each title
                             db_update_score(title)  # Update the score of the title in the database

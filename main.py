@@ -161,6 +161,7 @@ def get_show_id_title(netflix_titles, show_id):
 
 # Main function to run the application
 if __name__ == '__main__':
+    # TODO: Add frontend to the application, preferably using some library like Flask or Django
     # Connect to the database and retrieve the Netflix titles
     netflix_titles = connect_db(num_results=150)
 
@@ -209,6 +210,7 @@ if __name__ == '__main__':
     # Get non-scored titles from the database
     non_scored_titles = get_non_scored_titles_from_db()
 
+    # Debug print statements
     # Print the scored titles
     # for scored_title in scored_titles:
     #     print(f"Title: {scored_title.title} - Cast: {scored_title.cast} - Score: {scored_title.score}")
@@ -230,6 +232,7 @@ if __name__ == '__main__':
     # Update the jaccard similarity scores in the database - DON'T FORGET TO TURN THIS ON TO UPDATE THE DATABASE (but don't forget to turn it off again either due to performance issues)
     # updated_jaccard_scores = update_jaccard_similarity(positive_scores)
 
+    # Get the flexible title query and score the queried titles based on the user input
     get_flexible_title_query()
 
 

@@ -5,10 +5,7 @@ from collections import deque
 
 import mysql
 import mysql.connector
-
 from title import NetflixTitle
-from scored_title import ScoredTitle
-from non_scored_title import NonScoredTitle
 
 country_preference = None
 duration_preference = None
@@ -23,7 +20,6 @@ recommended_threshold = 0.01
 updated_jaccard_titles = []
 query_results = []
 selected_title = []
-
 
 
 # constructor of the node class
@@ -76,7 +72,8 @@ def get_scored_titles_from_db():
 
         # Loop through the rows and create NetflixTitle objects
     for row in rows:
-        scored_titles.append(ScoredTitle(*row))
+        scored_titles.append(NetflixTitle(*row))
+        #scored_titles.append(ScoredTitle(*row))
 
     #Use for loop to print the scored titles
     return scored_titles
@@ -116,7 +113,7 @@ def get_non_scored_titles_from_db():
 
         # Loop through the rows and create NetflixTitle objects
     for row in rows:
-        non_scored_titles.append(NonScoredTitle(*row))
+        non_scored_titles.append(NetflixTitle(*row))
 
     #Use for loop to print the scored titles
     return non_scored_titles
@@ -156,7 +153,7 @@ def get_user_query_title_from_db(query_title):
 
         # print(f'--- Non-Scored titles ---')
 
-        # Loop through the rows and create NetflixTitle objects
+    # Loop through the rows and create NetflixTitle objects
     for row in rows:
         query_results.append(NetflixTitle(*row))
 
@@ -250,11 +247,11 @@ def get_recommendations_based_on_similarity(scored_titles, non_scored_titles):
 def filter_positive_similarity_scores(jaccard_similarities, threshold):
     positive_scores = {} # Initialize an empty dictionary to store the positive similarity scores
 
-    # Loop through the outer list
+    # Loop through the outer list to get access to the inner tuple containing the title and the jaccard similarity
     for inner_tuple in jaccard_similarities:
         # Unpack the inner tuple
         for title, jaccard_similarity in inner_tuple:
-            # print(f"- Positive Title: {title} AND Jaccard Similarity: {jaccard_similarity} -")
+            # print(f"- POSITIVE Title: {title} AND Jaccard Similarity: {jaccard_similarity} -")
             try:
                 if jaccard_similarity != threshold:  # If the jaccard similarity is not equal to the threshold then add it to the positive scores dictionary
                     positive_scores[title] = jaccard_similarity
@@ -264,6 +261,7 @@ def filter_positive_similarity_scores(jaccard_similarities, threshold):
     if not positive_scores:
         print("No positive similarity scores found.")
 
+    # Print the amount of positive similarity scores
     print(f"Amount of positive similarity scores: {len(positive_scores)}")
 
     return positive_scores
@@ -386,7 +384,7 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
-
+# Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
 
@@ -400,7 +398,7 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
 
     print(f'Length of filtered titles: {len(filtered_titles)}')
 
-    # Filter out all of the duplicate entries from the filtered titles list
+    # Filter out all the duplicate entries from the filtered titles list
     filtered_titles = list(set(filtered_titles))
 
     # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
@@ -414,12 +412,14 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     # Return the filtered titles limited to the number of suggestions
     return filtered_titles[:num_suggestions]
 
+
 # Check if the number of recommendations has been reached
 def check_reached_num_suggestions(recommended_titles, num_suggestions):
     if len(recommended_titles) >= num_suggestions:
         print(f'Desired number of recommendations reached; {len(recommended_titles)} asked: {num_suggestions}')
     else:
         print(f'Cannot retrieve desired number of recommendations based on current filters, current length: {len(recommended_titles)} asked: {num_suggestions}')
+
 
 # Function to search if there is a substring that matches US or UK in the country attribute of the title.country
 def is_us_or_uk_title(title):
@@ -928,7 +928,8 @@ def get_flexible_title_query():
                 print("Skipping scoring titles.")
                 return None
 
-        print(f'Searching for titles with the query: {search_title}')
+        # Debug print statement
+        # print(f'Searching for titles with the query: {search_title}')
         query_results = get_user_query_title_from_db(search_title)
 
         if query_results:

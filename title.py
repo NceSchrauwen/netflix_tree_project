@@ -18,14 +18,9 @@ class NetflixTitle:
         self.score = score
         self.jaccard_similarity = jaccard_similarity
 
-
     def __str__(self):
         return f"Title: {self.title} - Release Year: {self.release_year} - Date Added: {self.date_added} - Listed In: {self.listed_in} - Type: {self.type}"
 
-    def get_jaccard_similarity(self):
-        return self.jaccard_similarity
-    def set_jaccard_similarity(self, jaccard_similarity):
-        self.jaccard_similarity = jaccard_similarity
-        return self.jaccard_similarity
+
 
 

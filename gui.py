@@ -6,6 +6,9 @@ import tkinter as tk
 from tkinter import ttk
 from db_functions import get_titles_to_select_from_db
 
+global start_index
+global end_index
+
 class NetflixGUI:
     def __init__(self, window):
         # Set window title and size
@@ -44,21 +47,54 @@ class NetflixGUI:
         for col in self.columns:
             self.treeView.heading(col, text=col) # Set column headings automatically
 
+        # self.populate_treeview()
+
+        # Define the current page and the number of titles to display per page
+        self.current_page = 1
+        self.titles_per_page = 50
+
         # Populate the Treeview with data from the database
         self.populate_treeview()
+
+        # Buttons to go to the next and back to the previous page
+        self.button = ttk.Button(self.window, text="Previous", command=self.prev_page)
+        self.button.pack(pady=20)
+
+        self.button = ttk.Button(self.window, text="Next", command=self.next_page)
+        self.button.pack(pady=20)
 
         # Button to trigger built-in function to exit window
         self.button = ttk.Button(window, text="Exit", command=lambda: self.window.destroy())
         self.button.pack(pady=20)
 
+        # Set style for the Treeview
+        # style = ttk.Style()
+        # style.configure("clam")
+
+
     # Function to populate the Treeview with data from the database using function from db_functions.py
     def populate_treeview(self):
-        titles = get_titles_to_select_from_db()  # Get titles from the database
+        for item in self.treeView.get_children():
+            self.treeView.delete(item)
+
+        start_index = (self.current_page - 1) * self.titles_per_page
+        end_index = (self.current_page - 1) + self.titles_per_page
+
+        titles = get_titles_to_select_from_db(start_index, end_index)  # Get titles from the database
         for title in titles:
             # Only include the values for the selected columns
-            values = (title.type, title.title, title.country, title.release_year,
+            values = (title.show_id, title.type, title.title, title.country, title.release_year,
                       title.rating, title.duration, title.listed_in)
             self.treeView.insert('', 'end', values=values)
+
+    def prev_page(self):
+        if self.current_page > 1:
+            self.current_page -= 1
+            self.populate_treeview()
+
+    def next_page(self):
+        self.current_page += 1
+        self.populate_treeview()
 
 # Function to create the GUI, which will be called from main.py
 def create_gui():

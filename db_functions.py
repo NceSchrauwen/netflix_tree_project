@@ -6,7 +6,7 @@ import mysql.connector
 from title import NetflixTitle
 
 # Function to fetch titles from the database for the user to select in the GUI
-def get_titles_to_select_from_db():
+def get_titles_to_select_from_db(start_index, end_index):
     titles_to_select = []
 
     try:
@@ -22,9 +22,8 @@ def get_titles_to_select_from_db():
         # Create a cursor to execute SQL queries
         cursor = mydb.cursor()
 
-        # TODO: Remove limit 150 and see what happens if you load all 8807 titles into the treeview
         # Execute the SQL query to select all titles from the database
-        cursor.execute("select * from netflix_movies limit 150")
+        cursor.execute(f'select * from netflix_movies limit {start_index}, {end_index};')
 
         # Fetch all the rows
         rows = cursor.fetchall()

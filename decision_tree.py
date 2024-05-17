@@ -1,5 +1,7 @@
 #Developed by: Nina Schrauwen
-#Date: 11/04/2021
+#Description: This is the decision tree file of the Netflix recommendation system. This file contains the decision tree class and functions to build the decision tree and get recommendations based on the user input.
+#Date: 11/04/2024
+
 import random
 from collections import deque
 
@@ -73,7 +75,6 @@ def get_scored_titles_from_db():
         # Loop through the rows and create NetflixTitle objects
     for row in rows:
         scored_titles.append(NetflixTitle(*row))
-        #scored_titles.append(ScoredTitle(*row))
 
     #Use for loop to print the scored titles
     return scored_titles

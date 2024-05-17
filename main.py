@@ -1,13 +1,16 @@
 #Developed by: Nina Schrauwen
-#Date: 11/04/2021
+#Date: 11/04/2024
 #Description: This is the main file of the Netflix recommendation system. It connects to the database, retrieves the Netflix titles, and selects a random title. It then builds a decision tree and retrieves the recommended titles.
 
 import random
 from title import NetflixTitle
 import mysql.connector
 from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query, check_reached_num_suggestions
+from gui import NetflixGUI, create_gui
+from db_functions import get_titles_to_select_from_db
 
 global netflix_titles
+global titles_to_select
 
 def connect_db(num_results=200):
     global netflix_titles
@@ -234,6 +237,11 @@ if __name__ == '__main__':
 
     # Get the flexible title query and score the queried titles based on the user input
     get_flexible_title_query()
+
+    # get_titles_to_select_from_db()
+
+    # Create the GUI
+    create_gui()
 
 
 

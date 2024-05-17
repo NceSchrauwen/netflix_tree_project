@@ -1,5 +1,7 @@
 #Developed by: Nina Schrauwen
-#Date: 11/04/2021
+#Description: This file contains the NetflixTitle class.
+#Date: 11/04/2024
+
 class NetflixTitle:
     # constructor of class
     def __init__(self, show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity):

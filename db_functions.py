@@ -47,3 +47,41 @@ def get_titles_to_select_from_db(start_index, end_index):
 
     # Return the list of NetflixTitle objects to use in the GUI
     return titles_to_select
+
+def get_query_title_from_db(query_title):
+    query_results = []
+
+    try:
+        # Connect to the database
+        mydb = mysql.connector.connect(
+            host="localhost",
+            port="8080",
+            user="Admin",
+            password="Brownie#99",
+            database="netflix_titles"
+        )
+
+        # Create a cursor to execute SQL queries
+        cursor = mydb.cursor()
+
+        # Execute the SQL query to select scored titles
+        query = "SELECT * FROM netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
+        cursor.execute(query)
+
+        # Fetch all the rows
+        rows = cursor.fetchall()
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+
+    finally:
+        # Close the database connection
+        if mydb.is_connected():
+            cursor.close()
+            mydb.close()
+
+    # Loop through the rows and create NetflixTitle objects
+    for row in rows:
+        query_results.append(NetflixTitle(*row))
+
+    return query_results

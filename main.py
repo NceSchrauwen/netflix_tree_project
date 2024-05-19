@@ -165,6 +165,11 @@ def get_show_id_title(netflix_titles, show_id):
 # Main function to run the application
 if __name__ == '__main__':
     # TODO: Add frontend to the application, preferably using some library like Flask or Django
+
+    # Create the GUI
+    create_gui()
+
+
     # Connect to the database and retrieve the Netflix titles
     netflix_titles = connect_db(num_results=150)
 
@@ -238,10 +243,7 @@ if __name__ == '__main__':
     # Get the flexible title query and score the queried titles based on the user input
     get_flexible_title_query()
 
-    # get_titles_to_select_from_db()
 
-    # Create the GUI
-    create_gui()
 
 
 

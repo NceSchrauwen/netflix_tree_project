@@ -4,7 +4,7 @@
 
 import tkinter as tk
 from tkinter import ttk
-from db_functions import get_titles_to_select_from_db
+from db_functions import get_titles_to_select_from_db, get_query_title_from_db
 
 global start_index
 global end_index
@@ -14,11 +14,25 @@ class NetflixGUI:
         # Set window title and size
         self.window = window
         self.window.title('Netflix Title Picker')
-        self.window.geometry("1400x600")
+        self.window.geometry("1200x600")
 
         # Label to display the title of the GUI
-        self.label = ttk.Label(window, text="Netflix Recommendation System")
+        self.label = ttk.Label(window, text="Netflix Recommendation System", font=("Ariel", 18))
         self.label.pack(pady=10)
+
+        # Create a frame to hold the search bar and labels, buttons, etc
+        self.search_frame = ttk.Frame(window)
+        self.search_frame.pack(pady=10)
+
+        self.search_label = ttk.Label(self.search_frame, text="Search for a title:")
+        self.search_label.pack(pady=5)
+
+        self.search_entry = ttk.Entry(self.search_frame, width=30)
+        self.search_entry.pack(side='left', pady=5)
+
+        # TODO: Create button to search for a title
+        self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
+        self.search_button.pack(side='left', pady=5)
 
         # Create a frame to hold the Treeview and scrollbars
         tree_frame = ttk.Frame(window)
@@ -47,8 +61,6 @@ class NetflixGUI:
         for col in self.columns:
             self.treeView.heading(col, text=col) # Set column headings automatically
 
-        # self.populate_treeview()
-
         # Define the current page and the number of titles to display per page
         self.current_page = 1
         self.titles_per_page = 50
@@ -67,9 +79,11 @@ class NetflixGUI:
         self.button = ttk.Button(window, text="Exit", command=lambda: self.window.destroy())
         self.button.pack(pady=20)
 
-        # Set style for the Treeview
-        # style = ttk.Style()
-        # style.configure("clam")
+        # Set style for the Treeview and buttons (font and theme)
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=("Ariel", 10))
+        style.configure("Button", font=("Ariel", 8))
+        style.theme_use("clam")
 
 
     # Function to populate the Treeview with data from the database using function from db_functions.py
@@ -87,14 +101,40 @@ class NetflixGUI:
                       title.rating, title.duration, title.listed_in)
             self.treeView.insert('', 'end', values=values)
 
+    # Function to navigate to the previous page
     def prev_page(self):
         if self.current_page > 1:
             self.current_page -= 1
             self.populate_treeview()
 
+    # Function to navigate to the next page
     def next_page(self):
         self.current_page += 1
         self.populate_treeview()
+
+    # Function to search for a title in the database
+    def search_title(self):
+        query_title = self.search_entry.get()
+        if query_title:
+            results = get_query_title_from_db(query_title)
+            self.display_search_results(results)
+
+    # Function to display the search results in the Treeview
+    def display_search_results(self, results):
+        for item in self.treeView.get_children():
+            self.treeView.delete(item)
+
+        # If no results are found, insert a row with "No results found" message
+        if not results:
+            # Insert a row with "No results found" message
+            self.treeView.insert('', 'end', values=("No results found", "", "", "", "", "", "", ""))
+        else:
+            # Insert the search results into the Treeview
+            for result in results:
+                values = (result.show_id, result.type, result.title, result.country, result.release_year,
+                          result.rating, result.duration, result.listed_in)
+                self.treeView.insert('', 'end', values=values)
+
 
 # Function to create the GUI, which will be called from main.py
 def create_gui():

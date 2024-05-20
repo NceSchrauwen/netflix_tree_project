@@ -5,9 +5,12 @@
 import tkinter as tk
 from tkinter import ttk
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
+from other_functions import get_show_id_title, print_title_attributes
+from shared import connect_db
 
 global start_index
 global end_index
+
 
 class NetflixGUI:
     def __init__(self, window):
@@ -30,7 +33,8 @@ class NetflixGUI:
         self.search_entry = ttk.Entry(self.search_frame, width=30)
         self.search_entry.pack(side='left', pady=5)
 
-        # TODO: Create button to search for a title
+        # TODO: Update README to include the data source and how to set up the local database TODO: Let the user
+        #  select a sample title from the treeview and base the recommendations off it (use the show_id)
         self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
         self.search_button.pack(side='left', pady=5)
 
@@ -85,6 +89,11 @@ class NetflixGUI:
         style.configure("Button", font=("Ariel", 8))
         style.theme_use("clam")
 
+        # Allow the user to double-click on a title to select it
+        self.treeView.bind("<Double-1>", self.on_double_click)
+
+        # Attribute to store the selected title
+        self.selected_title = None
 
     # Function to populate the Treeview with data from the database using function from db_functions.py
     def populate_treeview(self):
@@ -135,9 +144,21 @@ class NetflixGUI:
                           result.rating, result.duration, result.listed_in)
                 self.treeView.insert('', 'end', values=values)
 
+    def on_double_click(self, event):
+        try:
+            selected_item = self.treeView.selection()[0]
+            show_id = self.treeView.item(selected_item, 'values')[0]
+            netflix_titles = connect_db()
+            title = get_show_id_title(netflix_titles, show_id)
+            self.selected_title = title   # Store the selected title in the class attribute to later access it in main.py
+        except IndexError:
+            # Handle the case when no item is selected
+            print("Having trouble selecting the title. Please try again.")
+            self.selected_title = None
 
-# Function to create the GUI, which will be called from main.py
+
+# Function to create the GUI instance, which will be called from main.py
 def create_gui():
     window = tk.Tk()
-    NetflixGUI(window)
-    window.mainloop()
+    gui_instance = NetflixGUI(window)
+    return gui_instance

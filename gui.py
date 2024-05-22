@@ -33,8 +33,7 @@ class NetflixGUI:
         self.search_entry = ttk.Entry(self.search_frame, width=30)
         self.search_entry.pack(side='left', pady=5)
 
-        # TODO: Update README to include the data source and how to set up the local database TODO: Let the user
-        #  select a sample title from the treeview and base the recommendations off it (use the show_id)
+        # TODO: Update README to include the data source and how to set up the local database
         self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
         self.search_button.pack(side='left', pady=5)
 

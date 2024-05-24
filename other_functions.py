@@ -9,6 +9,7 @@ CSV_FILE_PATH = 'genre_counts.csv'
 
 global achievement_output
 
+# TODO: Add more normalization mappings as needed
 # Function to normalize the genre names
 def normalize_genre(genre):
     normalization_dict = {
@@ -47,6 +48,7 @@ def write_genre_counts(genre_counts):
 
 
 def check_achievement(genre_counts):
+    global achievement_output
     achievement_output = None
 
     achievements = {
@@ -58,7 +60,9 @@ def check_achievement(genre_counts):
     for achievement, (genre, count) in achievements.items():
         if genre_counts[genre] >= count:
             achievement_output = f'Congratulations! You are a "{achievement}"!'
+            genre_counts[genre] = 0  # Reset the count for the genre after achieving the milestone
 
+    write_genre_counts(genre_counts) # Update the genre counts in the CSV file
     return achievement_output
 
 # Function to get the title object based on the show ID, will use the show_id based on the user input

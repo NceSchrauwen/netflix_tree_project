@@ -85,9 +85,10 @@ def main():
     # Check if the number of suggestions has been reached
     check_reached_num_suggestions(filtered_recommended_titles, num_suggestions)
 
-    # Call it here in order to get the user scores AFTER the recommendations have been printed out
+    # Call it here in order to get the user scores AFTER the recommendations have been printed
+    # Switch out the filtered_recommended_titles with recommended_titles to test the function
     get_user_scores(
-        filtered_recommended_titles)  # Switch out the filtered_recommended_titles with recommended_titles to test the function
+        filtered_recommended_titles)
 
     # Get the scored titles from the database
     scored_titles = get_scored_titles_from_db()

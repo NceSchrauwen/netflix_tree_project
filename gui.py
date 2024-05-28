@@ -7,6 +7,7 @@ from tkinter import ttk
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
 from other_functions import get_show_id_title, print_title_attributes
 from shared import connect_db
+import decision_tree
 
 global start_index
 global end_index
@@ -213,12 +214,21 @@ class NetflixGUI:
             self.selected_title = None
 
     def get_user_input(self):
-        pg = self.pg_entry.get()
-        classic = self.classic_entry.get()
-        duration = self.duration_entry.get()
-        country = self.country_entry.get()
-        print(f"User input: pg={pg}, classic={classic}, duration={duration}, country={country}")
-        return pg, classic, duration, country
+        child_friendly_preference = self.pg_entry.get()
+        classic_preference = self.classic_entry.get()
+        duration_preference = self.duration_entry.get()
+        country_preference = self.country_entry.get()
+
+        if child_friendly_preference in ["yes", "no"] and classic_preference in ["yes", "no"] and duration_preference in ["yes", "no"] and country_preference in ["yes", "no"]:
+            decision_tree.child_friendly_preference = child_friendly_preference
+            decision_tree.classic_preference = classic_preference
+            decision_tree.duration_preference = duration_preference
+            decision_tree.country_preference = country_preference
+            print(f"User input: pg={child_friendly_preference}, classic={classic_preference}, duration={duration_preference}, country={country_preference}")
+        else:
+            print("Invalid input. Please enter 'yes' or 'no' for each preference.")
+
+        return child_friendly_preference, classic_preference, duration_preference, country_preference
 
 
 # Function to create the GUI instance, which will be called from main.py

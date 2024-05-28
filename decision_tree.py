@@ -2,21 +2,19 @@
 #Description: This is the decision tree file of the Netflix recommendation system. This file contains the decision tree class and functions to build the decision tree and get recommendations based on the user input.
 #Date: 11/04/2024
 
+# Import necessary libraries
 import random
 from collections import deque
-
 import mysql
 import mysql.connector
 from title import NetflixTitle
+import gui
 
-country_preference = None
-duration_preference = None
-classic_preference = None
+# Global variables
 directions = []
 criteria = []
 criterion = None
 recommended_titles = []
-child_friendly_preference = None
 threshold = 0.0
 recommended_threshold = 0.01
 updated_jaccard_titles = []
@@ -39,6 +37,7 @@ class DecisionTreeNode:
                f"Right Child: {self.right_child}\n" \
             # f"Recommended Titles: {self.recommended_titles}\n"
 
+# Function to retreive all scored titles from the db and use this input for the calculation of the jaccard similarity
 def get_scored_titles_from_db():
     scored_titles = []
 
@@ -79,6 +78,8 @@ def get_scored_titles_from_db():
     #Use for loop to print the scored titles
     return scored_titles
 
+
+# Function to retreive all non-scored titles from the db and use this input for the calculation of the jaccard similarity
 def get_non_scored_titles_from_db():
     non_scored_titles = []
 
@@ -267,53 +268,27 @@ def filter_positive_similarity_scores(jaccard_similarities, threshold):
 
     return positive_scores
 
-
-# to get user input on multiple criteria
+# Function to retreive user input from the gui.py file to later on use in the decision tree
 def get_user_input():
-    # Get user input
-    global country_preference
-    global duration_preference
     global child_friendly_preference
     global classic_preference
+    global duration_preference
+    global country_preference
 
-    while True:
-        child_friendly_pref = input("Do you want to watch a child-friendly (under age 13) movie/season? (yes/no): ").strip().lower()
-        if child_friendly_pref in ["yes", "no"]:
-            child_friendly_preference = child_friendly_pref
-            break
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
+    print(f'--- User Preferences ---')
+    print(f'--- Child-Friendly Preference {child_friendly_preference} ---')
+    print(f'--- Classic Preference {classic_preference} ---')
+    print(f'--- Duration Preference {duration_preference} ---')
+    print(f'--- Country Preference {country_preference} ---')
 
-    while True:
-        classic_pref = input("Do you want to watch a classic movie/season? (yes/no): ").strip().lower()
-        if classic_pref in ["yes", "no"]:
-            classic_preference = classic_pref
-            break
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
-
-    while True:
-        duration_pref = input("Do you want to watch a short movie/season? (yes/no): ").strip().lower()
-        if duration_pref in ["yes", "no"]:
-            duration_preference = duration_pref
-            break
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
-
-    while True:
-        preference = input("Do you want to watch a movie from the US or the UK? (yes/no): ").strip().lower()
-        if preference in ["yes", "no"]:
-            country_preference = preference
-            break
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
+    return child_friendly_preference, classic_preference, duration_preference, country_preference
 
 # to build the decision tree and get the recommendations based on the user input
 def build_decision_tree(netflix_data, selected_title, num_suggestions):
     root = DecisionTreeNode(criterion="Initial Criterion")
     get_user_input()
 
-    recursive_build_tree(root, netflix_data, selected_title, num_suggestions)
+    recursive_build_tree(root, netflix_data, selected_title, child_friendly_preference, classic_preference, duration_preference, country_preference)
     print(f'Root: {root}')
     # get_user_scores()
     return root
@@ -321,18 +296,18 @@ def build_decision_tree(netflix_data, selected_title, num_suggestions):
 
 # function to build node and its path based on the direction input
 def build_path(node, directions, criteria, recommended_titles):
-    global criterion
-
     # if there are no directions left, then return the node with the recommended titles
     if not directions:
         node.recommended_titles = recommended_titles
         return node
 
-    directions_copy = directions.copy()
+    # create a copy of the directions list to be able to view the original list of directions
+    # directions_copy = directions.copy()
+    # pop the first element of the list to get the current criterion to process
     criterion = criteria.pop(0)
 
     # pop the first element of the list to get the current direction to process
-    direction = directions_copy.pop(0)
+    direction = directions.pop(0)
 
     # if the direction is not left or right, then raise a ValueError
     if direction not in ['left', 'right']:
@@ -347,7 +322,7 @@ def build_path(node, directions, criteria, recommended_titles):
         else:
             node.left_child.criterion = criterion
             node.left_child.recommended_titles = recommended_titles
-        build_path(node.left_child, directions_copy, criteria, recommended_titles)
+        build_path(node.left_child, directions, criteria, recommended_titles)
 
     # if the direction is right, then create a new node and set it to the right child of the current node
     elif direction == 'right':
@@ -358,32 +333,42 @@ def build_path(node, directions, criteria, recommended_titles):
         else:
             node.right_child.criterion = criterion
             node.right_child.recommended_titles = recommended_titles
-        build_path(node.right_child, directions_copy, criteria, recommended_titles)
+        build_path(node.right_child, directions, criteria, recommended_titles)
+
+    else:
+        raise ValueError(f"Invalid direction: {direction}. Only 'left' or 'right' are allowed.")
 
     # if a new node is made then recurse with the new node and the remaining directions
     return node
 
-# function to determine wheter the title is a movie or a tv show and then filter  and return the titles based on the duration
+
+# Function to determine wheter the title is a movie or a tv show and then filter  and return the titles based on the duration
 def decide_title_type(selected_title, duration_preference, previous_titles):
+    # Set the new_titles list to an empty list
     new_titles = []
 
-    if selected_title.duration is not None:
-        if selected_title.type.lower() == "movie":
-            if duration_preference == "yes":
-                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
-            elif duration_preference == "no":
-                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
-
-        elif selected_title.type.lower() == "tv show":
-            if duration_preference == "yes":
-                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
-            elif duration_preference == "no":
-                new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
-        else:
-            return "Invalid duration input"
+    # If the selected title is a movie, then filter the titles based on minutes
+    # Less than or equal to 80 minutes or more than 80 minutes, depending on the duration preference
+    if selected_title.type.lower() == "movie":
+        if duration_preference == "yes":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) <= 80]
+        elif duration_preference == "no":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 80]
+    # If the selected title is a tv show, then filter the titles based on the number of seasons
+    # One or more season in this case, depending on duration preference
+    elif selected_title.type.lower() == "tv show":
+        if duration_preference == "yes":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) == 1]
+        elif duration_preference == "no":
+            new_titles = [title for title in previous_titles if int(title.duration.split()[0]) > 1]
+    else:
+        # If the title type is not defined as a movie or tv show then print an error message and return an empty list
+        print("Invalid duration input")
+        return []
 
     # Return the new list of titles
     return new_titles
+
 
 # Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
@@ -423,19 +408,22 @@ def check_reached_num_suggestions(recommended_titles, num_suggestions):
 
 
 # Function to search if there is a substring that matches US or UK in the country attribute of the title.country
-def is_us_or_uk_title(title):
-    return title.country and any(country_term in title.country.lower() for country_term in ["united states", "united kingdom"])
+# def is_us_or_uk_title(title):
+#     return title.country and any(country_term in title.country.lower() for country_term in ["united states", "united kingdom"])
 
-# to recursively run through the decision tree searching for the best recommendation
-def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
-    global country_preference
-    global duration_preference
+# Function to search if there is A substring that matches US or UK in the country attribute of the title.country
+# This means US, France, UK is also a possible match
+def is_us_or_uk_title(title):
+    return title.country and any(country.strip().lower() in ["united states", "united kingdom"] for country in title.country.lower().split(', '))
+
+
+# Function to recursively run through the decision tree searching for the best recommendations based on various criteria
+def recursive_build_tree(node, netflix_data, selected_title, child_friendly_preference, classic_preference, duration_preference, country_preference):
     global directions
     global criterion
     global criteria
     global recommended_titles
-    global child_friendly_preference
-    global classic_preference
+
 
     directions = []
     criteria = []
@@ -444,8 +432,8 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
     if directions is None:
         directions = []
 
-    us_uk_data = []
-    other_data = []
+    # us_uk_data = []
+    # other_data = []
 
     # If the node is the root node
     if node.criterion == "Initial Criterion":
@@ -512,7 +500,7 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
                                     directions.append("left")
                                     criteria.append("US/UK Titles")
                                     recommended_titles = us_uk_short_classic_data
-
+                            # TODO: Review why this does not have the function call is_us_or_uk_title
                             # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
                             elif country_preference == "no":
                                 other_short_classic_data = [title for title in short_classic_data if title.country is not None and title.country.lower() not in ["united states", "united kingdom"] and all(
@@ -783,9 +771,10 @@ def recursive_build_tree(node, netflix_data, selected_title, num_suggestions):
 
     # Call the function build_path to build the path based on the directions and criteria and create new node objects
     # Only called here because it's always going to take 1 certain path and will end up here, this way it's only called once
-    new_node = build_path(node, directions, criteria, recommended_titles)
+    build_path(node, directions, criteria, recommended_titles)
+    # new_node = build_path(node, directions, criteria, recommended_titles)
 
-    return new_node
+    return node
 
 
 # It is only called in the main function to get the recommended titles with the decision tree logic
@@ -876,6 +865,7 @@ def confirm_continuation():
         else:
             return True
 
+# Function to be able to score the selected recommendations and update the score in the database
 def incorporate_user_feedback(recommended_titles, valid_indices):
     # Loop through the indexes and update the score of the title in the database
     for index in valid_indices:
@@ -886,7 +876,7 @@ def incorporate_user_feedback(recommended_titles, valid_indices):
         else:
             print(f"Invalid index: {index}. Skipping this index.")  # Index out of bounds
 
-# Get user input for the scores of the recommended titles, this will be used to calculate the score of the titles
+# Get user input for the scores of the recommended titles, this will then be used to update the score of the titles
 def get_user_scores(recommended_titles):
     while True:
         # Ask the user to enter the indices of the titles they want to score
@@ -913,6 +903,7 @@ def get_user_scores(recommended_titles):
         except ValueError:
             print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
 
+# Function to ask the user if there is any title they want to score, if so, update the score in the database
 def get_flexible_title_query():
     global query_results
     global selected_titles
@@ -965,11 +956,50 @@ def get_flexible_title_query():
             print("No titles found based on the search query.")
             return None
 
+# --- Old code ---
 
-
-
-
-
+# Old console input function to get the user preferences for the decision tree
+# to get user input on multiple criteria
+# def get_user_input():
+#     # Get user input
+#     global country_preference
+#     global duration_preference
+#     global child_friendly_preference
+#     global classic_preference
+#
+#     while True:
+#         child_friendly_pref = input("Do you want to watch a child-friendly (under age 13) movie/season? (yes/no): ").strip().lower()
+#         if child_friendly_pref in ["yes", "no"]:
+#             child_friendly_preference = child_friendly_pref
+#             break
+#         else:
+#             print("Invalid input. Please enter 'yes' or 'no'.")
+#
+#     while True:
+#         classic_pref = input("Do you want to watch a classic movie/season? (yes/no): ").strip().lower()
+#         if classic_pref in ["yes", "no"]:
+#             classic_preference = classic_pref
+#             break
+#         else:
+#             print("Invalid input. Please enter 'yes' or 'no'.")
+#
+#     while True:
+#         duration_pref = input("Do you want to watch a short movie/season? (yes/no): ").strip().lower()
+#         if duration_pref in ["yes", "no"]:
+#             duration_preference = duration_pref
+#             break
+#         else:
+#             print("Invalid input. Please enter 'yes' or 'no'.")
+#
+#     while True:
+#         preference = input("Do you want to watch a movie from the US or the UK? (yes/no): ").strip().lower()
+#         if preference in ["yes", "no"]:
+#             country_preference = preference
+#             break
+#         else:
+#             print("Invalid input. Please enter 'yes' or 'no'.")
+#
+#     return country_preference, duration_preference, child_friendly_preference, classic_preference
 
 
 

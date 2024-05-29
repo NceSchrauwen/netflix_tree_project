@@ -6,7 +6,6 @@ import tkinter as tk
 # Import the necessary functions from the other files
 from decision_tree import DecisionTreeNode, build_decision_tree, get_recommended_titles, get_user_scores, recommended_titles, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query, check_reached_num_suggestions
 from gui import create_gui
-# from db_functions import get_titles_to_select_from_db
 from other_functions import get_show_id_title, print_title_attributes
 from shared import connect_db, clean_slate, print_attributes, new_print_title_attributes, get_sample_title, get_standup_comedy_titles, get_tv_show_titles, get_movie_titles
 
@@ -37,11 +36,19 @@ def main():
     # Connect to the database and retrieve the Netflix titles
     netflix_titles = connect_db(num_results=150)
 
+    # Ensure treeview is populated
+    gui_instance.populate_treeview()
+
     # Run the GUI main loop
     gui_instance.window.mainloop()
 
     # Get the selected title after the GUI main loop has finished
     selected_title = gui_instance.selected_title
+
+    if selected_title == None:
+        print("No title selected.")
+        return
+
     # Debug print statements to check if the selected title has been loaded
     # if selected_title:
     #     print(f"!!! Selected title: {selected_title} !!!")

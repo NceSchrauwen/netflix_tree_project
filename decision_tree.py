@@ -4,11 +4,9 @@
 
 # Import necessary libraries
 import random
-from collections import deque
 import mysql
 import mysql.connector
 from title import NetflixTitle
-import gui
 
 # Global variables
 directions = []
@@ -369,7 +367,7 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
-
+# TODO: Attach this function to the GUI to be able to display the recommended titles
 # Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
@@ -397,7 +395,6 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
 
     # Return the filtered titles limited to the number of suggestions
     return filtered_titles[:num_suggestions]
-
 
 # Check if the number of recommendations has been reached
 def check_reached_num_suggestions(recommended_titles, num_suggestions):
@@ -813,7 +810,6 @@ def get_recommended_titles(node, num_suggestions):
 
     # return the recommended titles list and limit the amount of suggestions to the user
     return recommended_titles
-    # return recommended_titles[:num_suggestions]
 
 
 # Update the score of the title in the database

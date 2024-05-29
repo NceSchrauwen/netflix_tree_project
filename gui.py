@@ -5,12 +5,9 @@
 import tkinter as tk
 from tkinter import ttk
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
-from other_functions import get_show_id_title, print_title_attributes
+from other_functions import get_show_id_title
 from shared import connect_db
 import decision_tree
-
-global start_index
-global end_index
 
 
 class NetflixGUI:
@@ -51,15 +48,15 @@ class NetflixGUI:
         tree_frame.pack(fill="both", expand=True)
 
         # Create a Treeview widget to display the titles
-        self.columns = ("Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In")
-        self.treeView = ttk.Treeview(tree_frame, columns=self.columns, show='headings')
+        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In")
+        self.treeView1 = ttk.Treeview(tree_frame, columns=self.columns, show='headings')
 
         # Scrollbar Setup (inside treeview_frame)
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.treeView.yview)
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.treeView.xview)
+        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.treeView1.yview)
+        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.treeView1.xview)
 
         # Set the scrollbar to the right side of the treeview so that it doesn't wander outside the treeview
-        self.treeView.grid(row=0, column=0, sticky='nsew')
+        self.treeView1.grid(row=0, column=0, sticky='nsew')
         vsb.grid(row=0, column=1, sticky='ns')
         hsb.grid(row=1, column=0, sticky='ew')
 
@@ -67,32 +64,32 @@ class NetflixGUI:
         tree_frame.grid_columnconfigure(0, weight=1)  # Allow Treeview to expand horizontally
 
         # Configure the Treeview to use the scrollbars
-        self.treeView.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self.treeView1.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
         # Set column headings and widths
         for col in self.columns:
-            self.treeView.heading(col, text=col) # Set column headings automatically
+            self.treeView1.heading(col, text=col) # Set column headings automatically
 
         # Define the current page and the number of titles to display per page
         self.current_page = 1
         self.titles_per_page = 50
 
+        # Buttons to go to the next and back to the previous page
+        self.prev_button = ttk.Button(self.tab1, text="Previous", command=self.prev_page)
+        self.prev_button.pack(side="left", pady=20)
+
+        self.next_button = ttk.Button(self.tab1, text="Next", command=self.next_page)
+        self.next_button.pack(side="left", pady=20)
+
+        self.pref_button = ttk.Button(self.tab1, text="Go to Preferences", command=self.go_to_preferences)
+        self.pref_button.pack(side="left", pady=20)
+
         # Populate the Treeview with data from the database
         self.populate_treeview()
 
-        # Buttons to go to the next and back to the previous page
-        self.button = ttk.Button(self.tab1, text="Previous", command=self.prev_page)
-        self.button.pack(side="left", pady=20)
-
-        self.button = ttk.Button(self.tab1, text="Next", command=self.next_page)
-        self.button.pack(side="left", pady=20)
-
-        self.button = ttk.Button(self.tab1, text="Go to Preferences", command=self.go_to_preferences)
-        self.button.pack(side="left", pady=20)
-
         # Button to trigger built-in function to exit window
-        self.button = ttk.Button(self.tab1, text="Exit", command=lambda: self.window.destroy())
-        self.button.pack(side="left", pady=20)
+        self.exit_button = ttk.Button(self.tab1, text="Exit", command=lambda: self.window.destroy())
+        self.exit_button.pack(side="left", pady=20)
 
         # Set style for the Treeview and buttons (font and theme)
         style = ttk.Style()
@@ -101,7 +98,7 @@ class NetflixGUI:
         style.theme_use("clam")
 
         # Allow the user to double-click on a title to select it
-        self.treeView.bind("<Double-1>", self.on_double_click)
+        self.treeView1.bind("<Double-1>", self.on_double_click)
 
         # Attribute to store the selected title
         self.selected_title = None
@@ -138,9 +135,12 @@ class NetflixGUI:
         self.country_entry = ttk.Entry(self.tab2_frame, width=30)
         self.country_entry.pack(pady=5)
 
-        # TODO: Connect input to the decision-making algorithm
+        self.button = ttk.Button(self.tab2, text="Go to Recommendations", command=self.go_to_recommendations)
+        self.button.pack(side="left", pady=20)
+
+        # TODO: Connect input to the decision-making algorithm and make a class diagram for all the important classes
         # Button to get recommendations
-        self.recommend_button = ttk.Button(self.tab2_frame, text="Get Recommendations",
+        self.recommend_button = ttk.Button(self.tab2_frame, text="Submit Preferences",
                                            command=self.get_user_input)
         self.recommend_button.pack(pady=20)
 
@@ -148,35 +148,94 @@ class NetflixGUI:
         self.button = ttk.Button(self.tab2, text="Exit", command=lambda: self.window.destroy())
         self.button.pack(side="left", pady=20)
 
+        # Create the third tab
+        self.tab3 = ttk.Frame(self.notebook)
+        self.notebook.add(self.tab3, text='Recommendations')
+
+        self.tab3_lbl = ttk.Label(self.tab3, text="- Recommended Titles -", font=("Ariel", 18))
+        self.tab3_lbl.pack(pady=10)
+
+        # Create a frame to hold the preferences
+        self.tab3_frame = ttk.Frame(self.tab3)
+        self.tab3_frame.pack(fill="both", expand=True)
+
+        # Create treeview for loading of results
+        # Create a frame to hold the Treeview and scrollbars
+        tree_frame3 = ttk.Frame(self.tab3)
+        tree_frame3.pack(fill="both", expand=True)
+
+        # Create a Treeview widget to display the titles
+        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In")
+        self.treeView2 = ttk.Treeview(tree_frame3, columns=self.columns, show='headings')
+
+        # Scrollbar Setup (inside treeview_frame)
+        vsb = ttk.Scrollbar(tree_frame3, orient="vertical", command=self.treeView2.yview)
+        hsb = ttk.Scrollbar(tree_frame3, orient="horizontal", command=self.treeView2.xview)
+
+        # Set the scrollbar to the right side of the treeview so that it doesn't wander outside the treeview
+        self.treeView2.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+
+        tree_frame3.grid_rowconfigure(0, weight=1)  # Allow Treeview to expand vertically
+        tree_frame3.grid_columnconfigure(0, weight=1)  # Allow Treeview to expand horizontally
+
+        # Configure the Treeview to use the scrollbars
+        self.treeView2.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+
+        # Set column headings and widths
+        for col in self.columns:
+            self.treeView2.heading(col, text=col)  # Set column headings automatically
+
     # Function to populate the Treeview with data from the database using function from db_functions.py
     def populate_treeview(self):
-        for item in self.treeView.get_children():
-            self.treeView.delete(item)
+        current_tab = self.notebook.index(self.notebook.select())
 
-        start_index = (self.current_page - 1) * self.titles_per_page
-        end_index = (self.current_page - 1) + self.titles_per_page
+        if current_tab == 0:
+            self.treeView1.delete(*self.treeView1.get_children())  # Clear the Treeview efficiently
 
-        titles = get_titles_to_select_from_db(start_index, end_index)  # Get titles from the database
-        for title in titles:
-            # Only include the values for the selected columns
-            values = (title.show_id, title.type, title.title, title.country, title.release_year,
-                      title.rating, title.duration, title.listed_in)
-            self.treeView.insert('', 'end', values=values)
+            start_index = (self.current_page - 1) * self.titles_per_page
+            end_index = start_index + self.titles_per_page
+
+            titles = get_titles_to_select_from_db(start_index, end_index)  # Get titles from the database
+            if titles is None:
+                print("No titles found in the database.")
+                return
+
+            for title in titles:
+                # Only include the values for the selected columns
+                values = (title.show_id, title.type, title.title, title.country, title.release_year,
+                          title.rating, title.duration, title.listed_in)
+                self.treeView1.insert('', 'end', values=values)
+
+            # Update button states
+            self.prev_button.config(state="disabled" if self.current_page == 1 else "normal")
+            self.next_button.config(state="disabled" if len(titles) < self.titles_per_page else "normal")
+
+        if current_tab == 2:
+            self.treeView2.delete(*self.treeView2.get_children())
 
     # Function to navigate to the previous page
     def prev_page(self):
+        # print("Previous page button clicked.")
+        # print(f"Current page: {self.current_page}")
         if self.current_page > 1:
             self.current_page -= 1
             self.populate_treeview()
 
     # Function to navigate to the next page
     def next_page(self):
+        # print("Next page button clicked.")
+        # print(f"Current page: {self.current_page}")
         self.current_page += 1
         self.populate_treeview()
 
     # Function to navigate to the preferences tab
     def go_to_preferences(self):
         self.notebook.select(self.tab2)
+
+    def go_to_recommendations(self):
+        self.notebook.select(self.tab3)
 
     # Function to search for a title in the database
     def search_title(self):
@@ -187,32 +246,51 @@ class NetflixGUI:
 
     # Function to display the search results in the Treeview
     def display_search_results(self, results):
-        for item in self.treeView.get_children():
-            self.treeView.delete(item)
+        for item in self.treeView1.get_children():
+            self.treeView1.delete(item)
 
         # If no results are found, insert a row with "No results found" message
         if not results:
             # Insert a row with "No results found" message
-            self.treeView.insert('', 'end', values=("No results found", "", "", "", "", "", "", ""))
+            self.treeView1.insert('', 'end', values=("No results found", "", "", "", "", "", "", ""))
         else:
             # Insert the search results into the Treeview
             for result in results:
                 values = (result.show_id, result.type, result.title, result.country, result.release_year,
                           result.rating, result.duration, result.listed_in)
-                self.treeView.insert('', 'end', values=values)
+                self.treeView1.insert('', 'end', values=values)
 
     def on_double_click(self, event):
         try:
-            selected_item = self.treeView.selection()[0]
-            show_id = self.treeView.item(selected_item, 'values')[0]
+            selected_item = self.treeView1.identify_row(event.y) # Get the selected item
+            print(f"--- Selected item: {selected_item} ---")
+
+            if not selected_item:
+                print("No item selected.")
+                self.selected_title = None
+                return
+
+            # Get the values of the selected item from mouse pointer
+            values = self.treeView1.item(selected_item, 'values')
+            if not values:
+                print("No values found.")
+                self.selected_title = None
+                return
+
+            # Get the show ID of the selected item
+            show_id = values[0]
+            # print(f"Selected show ID: {show_id}")
+
             netflix_titles = connect_db()
             title = get_show_id_title(netflix_titles, show_id)
             self.selected_title = title   # Store the selected title in the class attribute to later access it in main.py
-        except IndexError:
-            # Handle the case when no item is selected
-            print("Having trouble selecting the title. Please try again.")
+            print(f"Selected title: {self.selected_title}")
+        # Handle exceptions
+        except Exception as e:
+            print(f"Error: {e}")
             self.selected_title = None
 
+    # Function to get the user input from the preferences tab to use in the decision-making algorithm
     def get_user_input(self):
         child_friendly_preference = self.pg_entry.get()
         classic_preference = self.classic_entry.get()

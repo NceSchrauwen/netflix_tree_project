@@ -7,6 +7,7 @@ from tkinter import ttk
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
 from other_functions import get_show_id_title
 from shared import connect_db
+from recommendations import get_recommendations
 import decision_tree
 
 
@@ -21,6 +22,12 @@ class NetflixGUI:
         self.notebook = ttk.Notebook(window)
         self.notebook.pack(fill='both', expand=True)
 
+        # end of the GUI setup
+        self.create_tab1()
+        self.create_tab2()
+        self.create_tab3()
+
+    def create_tab1(self):
         # Create the first tab
         self.tab1 = ttk.Frame(self.notebook)
         self.notebook.add(self.tab1, text='Netflix Title Selection')
@@ -68,7 +75,7 @@ class NetflixGUI:
 
         # Set column headings and widths
         for col in self.columns:
-            self.treeView1.heading(col, text=col) # Set column headings automatically
+            self.treeView1.heading(col, text=col)  # Set column headings automatically
 
         # Define the current page and the number of titles to display per page
         self.current_page = 1
@@ -99,10 +106,10 @@ class NetflixGUI:
 
         # Allow the user to double-click on a title to select it
         self.treeView1.bind("<Double-1>", self.on_double_click)
-
         # Attribute to store the selected title
         self.selected_title = None
 
+    def create_tab2(self):
         # Create the second tab
         self.tab2 = ttk.Frame(self.notebook)
         self.notebook.add(self.tab2, text='Preferences')
@@ -115,7 +122,8 @@ class NetflixGUI:
         self.tab2_frame.pack(fill="both", expand=True)
 
         # Add user input widgets for preferences
-        self.pg_label = ttk.Label(self.tab2_frame, text="Do you want to watch a child-friendly (under age 13) movie/season? (yes/no):")
+        self.pg_label = ttk.Label(self.tab2_frame,
+                                  text="Do you want to watch a child-friendly (under age 13) movie/season? (yes/no):")
         self.pg_label.pack(pady=5)
         self.pg_entry = ttk.Entry(self.tab2_frame, width=30)
         self.pg_entry.pack(pady=5)
@@ -130,7 +138,8 @@ class NetflixGUI:
         self.duration_entry = ttk.Entry(self.tab2_frame, width=30)
         self.duration_entry.pack(pady=5)
 
-        self.country_label = ttk.Label(self.tab2_frame, text="Do you want to watch a movie from the US or the UK? (yes/no): ")
+        self.country_label = ttk.Label(self.tab2_frame,
+                                       text="Do you want to watch a movie from the US or the UK? (yes/no): ")
         self.country_label.pack(pady=5)
         self.country_entry = ttk.Entry(self.tab2_frame, width=30)
         self.country_entry.pack(pady=5)
@@ -138,7 +147,7 @@ class NetflixGUI:
         self.button = ttk.Button(self.tab2, text="Go to Recommendations", command=self.go_to_recommendations)
         self.button.pack(side="left", pady=20)
 
-        # TODO: Connect input to the decision-making algorithm and make a class diagram for all the important classes
+        # TODO: Make event handler for this one too
         # Button to get recommendations
         self.recommend_button = ttk.Button(self.tab2_frame, text="Submit Preferences",
                                            command=self.get_user_input)
@@ -148,6 +157,7 @@ class NetflixGUI:
         self.button = ttk.Button(self.tab2, text="Exit", command=lambda: self.window.destroy())
         self.button.pack(side="left", pady=20)
 
+    def create_tab3(self):
         # Create the third tab
         self.tab3 = ttk.Frame(self.notebook)
         self.notebook.add(self.tab3, text='Recommendations')
@@ -187,33 +197,33 @@ class NetflixGUI:
         for col in self.columns:
             self.treeView2.heading(col, text=col)  # Set column headings automatically
 
+        # Button to trigger built-in function to exit window
+        self.exit3_button = ttk.Button(self.tab3, text="Exit", command=lambda: self.window.destroy())
+        self.exit3_button.pack(side="left", pady=20)
+
+
     # Function to populate the Treeview with data from the database using function from db_functions.py
     def populate_treeview(self):
-        current_tab = self.notebook.index(self.notebook.select())
+        self.treeView1.delete(*self.treeView1.get_children())  # Clear the Treeview efficiently
 
-        if current_tab == 0:
-            self.treeView1.delete(*self.treeView1.get_children())  # Clear the Treeview efficiently
+        start_index = (self.current_page - 1) * self.titles_per_page
+        end_index = start_index + self.titles_per_page
 
-            start_index = (self.current_page - 1) * self.titles_per_page
-            end_index = start_index + self.titles_per_page
+        titles = get_titles_to_select_from_db(start_index, end_index)  # Get titles from the database
+        if titles is None:
+            print("No titles found in the database.")
+            return
 
-            titles = get_titles_to_select_from_db(start_index, end_index)  # Get titles from the database
-            if titles is None:
-                print("No titles found in the database.")
-                return
+        for title in titles:
+            # Only include the values for the selected columns
+            values = (title.show_id, title.type, title.title, title.country, title.release_year,
+                      title.rating, title.duration, title.listed_in)
+            self.treeView1.insert('', 'end', values=values)
 
-            for title in titles:
-                # Only include the values for the selected columns
-                values = (title.show_id, title.type, title.title, title.country, title.release_year,
-                          title.rating, title.duration, title.listed_in)
-                self.treeView1.insert('', 'end', values=values)
+        # Update button states
+        self.prev_button.config(state="disabled" if self.current_page == 1 else "normal")
+        self.next_button.config(state="disabled" if len(titles) < self.titles_per_page else "normal")
 
-            # Update button states
-            self.prev_button.config(state="disabled" if self.current_page == 1 else "normal")
-            self.next_button.config(state="disabled" if len(titles) < self.titles_per_page else "normal")
-
-        if current_tab == 2:
-            self.treeView2.delete(*self.treeView2.get_children())
 
     # Function to navigate to the previous page
     def prev_page(self):
@@ -290,27 +300,48 @@ class NetflixGUI:
             print(f"Error: {e}")
             self.selected_title = None
 
+
     # Function to get the user input from the preferences tab to use in the decision-making algorithm
     def get_user_input(self):
+        # Get the values from the user input fields
         child_friendly_preference = self.pg_entry.get()
         classic_preference = self.classic_entry.get()
         duration_preference = self.duration_entry.get()
         country_preference = self.country_entry.get()
 
-        if child_friendly_preference in ["yes", "no"] and classic_preference in ["yes", "no"] and duration_preference in ["yes", "no"] and country_preference in ["yes", "no"]:
-            decision_tree.child_friendly_preference = child_friendly_preference
-            decision_tree.classic_preference = classic_preference
-            decision_tree.duration_preference = duration_preference
-            decision_tree.country_preference = country_preference
+        # If the user input is valid, pass it to the decision tree
+        if all(value in ['yes', 'no'] for value in [child_friendly_preference, classic_preference, duration_preference, country_preference]):
+            decision_tree.get_user_input(child_friendly_preference, classic_preference, duration_preference, country_preference)
             print(f"User input: pg={child_friendly_preference}, classic={classic_preference}, duration={duration_preference}, country={country_preference}")
         else:
             print("Invalid input. Please enter 'yes' or 'no' for each preference.")
 
         return child_friendly_preference, classic_preference, duration_preference, country_preference
 
+    # Function to submit the preferences and get the recommendations
+    def submit_preferences(self, netflix_titles, num_suggestions):
+        # Get the user input from the preferences tab
+        self.get_user_input()
+        # Go to recommendations tab
+        self.go_to_recommendations()
+        # Trigger recommendation process and get filtered recommended titles
+        filtered_recommended_titles = get_recommendations(self, netflix_titles, num_suggestions)
+        # First check if there are any recommended titles, then populate the treeview with the recommendations
+        if filtered_recommended_titles:
+            self.populate_rec_titles(filtered_recommended_titles)
+        else:
+            print("No filtered recommended titles to populate the GUI.")
 
-# Function to create the GUI instance, which will be called from main.py
-def create_gui():
-    window = tk.Tk()
-    gui_instance = NetflixGUI(window)
-    return gui_instance
+    # Function to populate the Treeview with the recommended titles
+    def populate_rec_titles(self, recommended_titles):
+        # Go to the recommendations tab
+        self.notebook.select(self.tab3)
+        self.treeView2.delete(*self.treeView2.get_children())  # Clear the Treeview efficiently
+
+        # Insert the recommended titles into the Treeview with the corresponding values
+        for title in recommended_titles:
+            values = (title.show_id, title.type, title.title, title.country, title.release_year,
+                      title.rating, title.duration, title.listed_in)
+            self.treeView2.insert('', 'end', values=values)
+
+

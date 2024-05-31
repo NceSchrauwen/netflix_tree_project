@@ -9,6 +9,10 @@ import mysql.connector
 from title import NetflixTitle
 
 # Global variables
+child_friendly_preference = None
+classic_preference = None
+duration_preference = None
+country_preference = None
 directions = []
 criteria = []
 criterion = None
@@ -267,11 +271,16 @@ def filter_positive_similarity_scores(jaccard_similarities, threshold):
     return positive_scores
 
 # Function to retreive user input from the gui.py file to later on use in the decision tree
-def get_user_input():
+def get_user_input(child_friendly, classic, duration, country):
     global child_friendly_preference
     global classic_preference
     global duration_preference
     global country_preference
+
+    child_friendly_preference = child_friendly
+    classic_preference = classic
+    duration_preference = duration
+    country_preference = country
 
     print(f'--- User Preferences ---')
     print(f'--- Child-Friendly Preference {child_friendly_preference} ---')
@@ -282,9 +291,9 @@ def get_user_input():
     return child_friendly_preference, classic_preference, duration_preference, country_preference
 
 # to build the decision tree and get the recommendations based on the user input
-def build_decision_tree(netflix_data, selected_title, num_suggestions):
+def build_decision_tree(netflix_data, selected_title, num_suggestions, child_friendly_preference, classic_preference, duration_preference, country_preference):
     root = DecisionTreeNode(criterion="Initial Criterion")
-    get_user_input()
+    get_user_input(child_friendly_preference, classic_preference, duration_preference, country_preference)
 
     recursive_build_tree(root, netflix_data, selected_title, child_friendly_preference, classic_preference, duration_preference, country_preference)
     print(f'Root: {root}')
@@ -367,7 +376,7 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
-# TODO: Attach this function to the GUI to be able to display the recommended titles
+# TODO: Attach this function to the GUI to be able to display the recommended titles, without causing circular imports
 # Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
@@ -872,6 +881,7 @@ def incorporate_user_feedback(recommended_titles, valid_indices):
         else:
             print(f"Invalid index: {index}. Skipping this index.")  # Index out of bounds
 
+# TODO: Rewrite this function to fit the GUI
 # Get user input for the scores of the recommended titles, this will then be used to update the score of the titles
 def get_user_scores(recommended_titles):
     while True:

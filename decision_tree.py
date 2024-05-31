@@ -821,8 +821,8 @@ def get_recommended_titles(node, num_suggestions):
     return recommended_titles
 
 
-# Update the score of the title in the database
-def db_update_score(title):
+# Update the score of the title in the database based on show_id
+def db_update_score(show_id):
     # Connecting with the db
     try:
         mydb = mysql.connector.connect(
@@ -835,7 +835,7 @@ def db_update_score(title):
         cursor = mydb.cursor()
 
         # Increment the score by 5 for the given title
-        cursor.execute(f'UPDATE netflix_movies SET score = score + 5 WHERE show_id = {title.show_id};')
+        cursor.execute(f'UPDATE netflix_movies SET score = score + 5 WHERE show_id = {show_id};')
         # print(f'Title {title.title} ({title.show_id}) has been scored.')  # Print the new score
 
         # Commit the changes to the db
@@ -843,7 +843,7 @@ def db_update_score(title):
         print("Score updated successfully in the database.")
 
         # Get the updated title from the database AFTER committing the previous changes
-        cursor.execute(f'SELECT * FROM netflix_movies WHERE show_id = {title.show_id};')
+        cursor.execute(f'SELECT * FROM netflix_movies WHERE show_id = {show_id};')
         # Fetch the updated title in the form of a NetflixTitle object
         updated_title = NetflixTitle(*cursor.fetchone())
 
@@ -860,54 +860,50 @@ def db_update_score(title):
             cursor.close()
             mydb.close()
 
+# TODO: Get rid of this old function
 # Ask the user to confirm if they want to continue without entering any indices
-def confirm_continuation():
-    while True:
-        confirmation = input("No indices entered. Do you want to continue? (yes/no): ").strip().lower()
-        if confirmation not in ("yes", "y"):
-            print("Skipping scoring titles.")
-            return False
-        else:
-            return True
+# def confirm_continuation():
+#     while True:
+#         confirmation = input("No indices entered. Do you want to continue? (yes/no): ").strip().lower()
+#         if confirmation not in ("yes", "y"):
+#             print("Skipping scoring titles.")
+#             return False
+#         else:
+#             return True
 
 # Function to be able to score the selected recommendations and update the score in the database
-def incorporate_user_feedback(recommended_titles, valid_indices):
-    # Loop through the indexes and update the score of the title in the database
-    for index in valid_indices:
-        if 1 <= index <= len(recommended_titles):  # Check if the index is within the range of the recommended titles
-            title = recommended_titles[index - 1]
-            # Call the function to update the score of the title within the database
-            db_update_score(title)
-        else:
-            print(f"Invalid index: {index}. Skipping this index.")  # Index out of bounds
+def incorporate_user_feedback(show_ids):
+    # Loop through the show_ids and update the score of the title in the database
+    for show_id in show_ids:
+        db_update_score(show_id)
 
-# TODO: Rewrite this function to fit the GUI
+# TODO: Get rid of this old function
 # Get user input for the scores of the recommended titles, this will then be used to update the score of the titles
-def get_user_scores(recommended_titles):
-    while True:
-        # Ask the user to enter the indices of the titles they want to score
-        user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ").strip().lower()
-        # print(f'User input: {user_input}')
-
-        # If there's no input form the user, ask for confirmation to continue
-        if not user_input:
-            if confirm_continuation():
-                continue
-            else:
-                return None  # Exit the function if the user doesn't want to continue
-
-        try:
-            selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
-            # If the index is within the range of the recommended titles then it's a valid index
-            valid_indices = [idx for idx in selected_indices if 1 <= idx <= len(recommended_titles)]
-            # If the length of the valid indices is equal to the length of the selected indices then break the loop
-            if len(valid_indices) == len(selected_indices):
-                incorporate_user_feedback(recommended_titles, valid_indices)
-                return valid_indices
-            else:
-                print("Invalid input. Please enter valid indices.")  # Invalid indices, retry
-        except ValueError:
-            print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
+# def get_user_scores(recommended_titles):
+#     while True:
+#         # Ask the user to enter the indices of the titles they want to score
+#         user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ").strip().lower()
+#         # print(f'User input: {user_input}')
+#
+#         # If there's no input form the user, ask for confirmation to continue
+#         if not user_input:
+#             if confirm_continuation():
+#                 continue
+#             else:
+#                 return None  # Exit the function if the user doesn't want to continue
+#
+#         try:
+#             selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
+#             # If the index is within the range of the recommended titles then it's a valid index
+#             valid_indices = [idx for idx in selected_indices if 1 <= idx <= len(recommended_titles)]
+#             # If the length of the valid indices is equal to the length of the selected indices then break the loop
+#             if len(valid_indices) == len(selected_indices):
+#                 incorporate_user_feedback(recommended_titles, valid_indices)
+#                 return valid_indices
+#             else:
+#                 print("Invalid input. Please enter valid indices.")  # Invalid indices, retry
+#         except ValueError:
+#             print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
 
 # Function to ask the user if there is any title they want to score, if so, update the score in the database
 def get_flexible_title_query():

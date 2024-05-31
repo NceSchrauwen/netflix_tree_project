@@ -33,13 +33,19 @@ def main():
     # Start the GUI main loop
     window.mainloop()
 
-    # filtered_recommended_titles = get_recommendations(gui_instance, netflix_titles, num_suggestions)
+
+# Main function to run the application
+if __name__ == '__main__':
+    main()
+
+# --- Old code snippets ---
+# filtered_recommended_titles = get_recommendations(gui_instance, netflix_titles, num_suggestions)
     #
     # # Call it here in order to get the user scores AFTER the recommendations have been printed
     # # Switch out the filtered_recommended_titles with recommended_titles to test the function
     # get_user_scores(
     #     filtered_recommended_titles)
-    #
+    # TODO: Find a way to incorporate the jaccard_similarities and updated_jaccard_scores in the GUI
     # # Get the scored titles from the database
     # scored_titles = get_scored_titles_from_db()
     # # Get non-scored titles from the database
@@ -59,13 +65,5 @@ def main():
     #
     # # Get the flexible title query and score the queried titles based on the user input
     # get_flexible_title_query()
-
-
-# Main function to run the application
-if __name__ == '__main__':
-    main()
-
-
-
 
 

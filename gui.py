@@ -8,6 +8,7 @@ from db_functions import get_titles_to_select_from_db, get_query_title_from_db
 from other_functions import get_show_id_title
 from shared import connect_db
 from recommendations import get_recommendations
+from decision_tree import incorporate_user_feedback
 import decision_tree
 
 
@@ -147,7 +148,6 @@ class NetflixGUI:
         self.button = ttk.Button(self.tab2, text="Go to Recommendations", command=self.go_to_recommendations)
         self.button.pack(side="left", pady=20)
 
-        # TODO: Make event handler for this one too
         # Button to get recommendations
         self.recommend_button = ttk.Button(self.tab2_frame, text="Submit Preferences",
                                            command=self.get_user_input)
@@ -169,7 +169,6 @@ class NetflixGUI:
         self.tab3_frame = ttk.Frame(self.tab3)
         self.tab3_frame.pack(fill="both", expand=True)
 
-        # Create treeview for loading of results
         # Create a frame to hold the Treeview and scrollbars
         tree_frame3 = ttk.Frame(self.tab3)
         tree_frame3.pack(fill="both", expand=True)
@@ -196,6 +195,27 @@ class NetflixGUI:
         # Set column headings and widths
         for col in self.columns:
             self.treeView2.heading(col, text=col)  # Set column headings automatically
+
+        # Create a frame to hold score input
+        tab3_frame = ttk.Frame(self.tab3)
+        tab3_frame.pack(fill="both", expand=True)
+
+        # Label for user input score
+        self.label = ttk.Label(self.tab3_frame, text="Which recommendations do you want to score?: ", font=("Ariel", 15))
+        self.label.pack(pady=10)
+
+        self.score_entry = ttk.Entry(self.tab3_frame, width=30)
+        self.score_entry.pack(pady=5)
+
+        # TODO: Link a function to this button to update the score in the database
+        # Button to get recommendations
+        self.score_submit_btn = ttk.Button(self.tab3_frame, text="Submit Score(s)",
+                                           command=self.get_user_scores)
+        self.score_submit_btn.pack(pady=20)
+
+        # Label to display scored show IDs
+        self.scored_label = ttk.Label(self.tab3_frame, text="", font=("Ariel", 12))
+        self.scored_label.pack(pady=10)
 
         # Button to trigger built-in function to exit window
         self.exit3_button = ttk.Button(self.tab3, text="Exit", command=lambda: self.window.destroy())
@@ -332,6 +352,8 @@ class NetflixGUI:
         else:
             print("No filtered recommended titles to populate the GUI.")
 
+        return filtered_recommended_titles
+
     # Function to populate the Treeview with the recommended titles
     def populate_rec_titles(self, recommended_titles):
         # Go to the recommendations tab
@@ -343,5 +365,29 @@ class NetflixGUI:
             values = (title.show_id, title.type, title.title, title.country, title.release_year,
                       title.rating, title.duration, title.listed_in)
             self.treeView2.insert('', 'end', values=values)
+
+        # Set filtered titles, to later use in get_user_scores
+        self.filtered_recommended_titles = recommended_titles
+
+    # Function to get the user scores and update the database based on show IDs
+    def get_user_scores(self):
+        # Get the user input from the score entry field
+        user_input = self.score_entry.get().strip()
+        try:
+            # Convert the user input to a list of integers and remove the commas
+            selected_show_ids = [int(show_id) for show_id in user_input.split(",")]
+            # Check if the number of scores exceeds the number of recommended titles
+            if len(selected_show_ids) > len(self.filtered_recommended_titles):
+                # If the number of scores exceeds the number of recommended titles, print an error message
+                print("Error: Number of scores exceeds the number of recommended titles.")
+                return
+            # Otherwise incorporate the user feedback and update the database based on the show IDs
+            incorporate_user_feedback(selected_show_ids)
+            # Convert the list of show IDs to a string and display it in the label once the scores have been submitted
+            scored_ids_str = ", ".join(map(str, selected_show_ids))
+            self.scored_label.config(text=f"Show IDs {scored_ids_str} have been scored.")
+        # Handle exceptions
+        except ValueError:
+            print("Error: Invalid input. Please enter a comma-separated list of integers. (e.g. 1, 32, 234, etc.)")
 
 

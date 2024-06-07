@@ -171,7 +171,8 @@ def get_user_query_title_from_db(query_title):
     return query_results
 
 
-# Function to update the jaccard similarity scores in the database
+# Function to update the jaccard similarity scores in the database, designed to only update the jaccard similarity
+# scores that have changed or that have not been set yet
 def update_jaccard_similarity(jaccard_data):
     updated_jaccard_titles = []
 
@@ -188,14 +189,50 @@ def update_jaccard_similarity(jaccard_data):
         # Create a cursor to execute SQL queries
         cursor = mydb.cursor()
 
-        # Expects more values then 2 because of jaccard_data being a nested list of tuples so it needs to be unpacked by using *_ in the for loop in order for the tile and jaccard_similarity to be extracted
+        # Retrieve all titles and their current jaccard similarity scores from the database
+        # Whether a jaccard score is set or not is irrelevant
+        cursor.execute("SELECT title, jaccard_similarity FROM netflix_movies")
+        current_jaccard_data = cursor.fetchall()
+        # print(f'Found {len(current_jaccard_data)} titles before updating jaccard scores')
+
+        # Create a dictionary to map titles to their current jaccard similarity scores
+        current_jaccard_dict = {title: jaccard_similarity for title, jaccard_similarity in current_jaccard_data}
+
+        update_count = 0
+        titles_to_update = [] # Create a list to store all titles to update
+
+        # Extract the title and jaccard similarity from the jaccard dictionary
         for title, jaccard_similarity in jaccard_data.items():
-            cursor.execute(
-                f'UPDATE netflix_movies SET jaccard_similarity = {jaccard_similarity} WHERE title = "{title}";')  # To wrap title in single quotes to prevent future SQL syntax errors
+            # If score is not set, then set to 0
+            existing_score = current_jaccard_dict.get(title, 0) # Get the existing jaccard similarity score for the title, otherwise default 0
+
+            # Check if the existing score is 0 or if the existing score is not equal to the existing jaccard
+            # similarity score
+            if (existing_score == 0) or (existing_score != jaccard_similarity):
+                # Append the title and jaccard similarity to the list of titles to update
+                titles_to_update.append((jaccard_similarity, title))
+
+        print(f"Number of rows to update: {len(titles_to_update)}")
+
+        # Only update the titles that need to be updated aka the titles that have a different jaccard similarity
+        # score or that had no score before
+        for jaccard_similarity, title in titles_to_update:
+            existing_score = current_jaccard_dict.get(title)
+            if existing_score == 0:
+                reason = f"New score; {existing_score} to {jaccard_similarity}"
+            elif existing_score != jaccard_similarity:
+                reason = f"Score changed from {existing_score} to {jaccard_similarity}"
+            else:
+                reason = "No change"
+            print(f"Title: {title}, Reason: {reason}")
+            if reason != "No change":
+                cursor.execute(
+                    "UPDATE netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (jaccard_similarity, title)
+                )
+                update_count += 1
 
         mydb.commit()  # Commit the transaction
-
-        print(f"Number of rows updated: {cursor.rowcount}") # Print the number of rows updated
+        print(f"Number of rows updated: {update_count}") # Print the number of rows updated
 
         # Execute the SQL query to select titles with jaccard scores above 0
         select_query = "SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE jaccard_similarity > 0"
@@ -206,11 +243,7 @@ def update_jaccard_similarity(jaccard_data):
         print(f"Number of positive jaccard titles found AFTER updating: {len(updated_jaccard_titles)}")
 
         if updated_jaccard_titles:
-            # print(f'Titles are being updated with the jaccard similarity scores.')
-            print(f'--- Positive jaccard titles ---')
-            for title in updated_jaccard_titles:
-                print(
-                    f' -\ Updated Title: {title.title}, Jaccard Score: {title.jaccard_similarity}, Score: {title.score}, Show ID: {title.show_id}, Type: {title.type} /-')
+            print(f'Titles are being updated with the jaccard similarity scores.')
         else:
             print("No positive jaccard titles found.")
 
@@ -224,6 +257,7 @@ def update_jaccard_similarity(jaccard_data):
             mydb.close()
 
     return updated_jaccard_titles
+
 
 # Function to calculate the Jaccard similarity between two sets
 def calculate_jaccard_similarity(set1, set2):
@@ -957,6 +991,23 @@ def get_flexible_title_query():
         else:
             print("No titles found based on the search query.")
             return None
+
+# Function to bring several function together to calculate and update the jaccard similarity scores in the database
+def process_recommendations(threshold):
+    # Get scored titles from the database
+    scored_titles = get_scored_titles_from_db()
+    # Get non-scored titles from the database
+    non_scored_titles = get_non_scored_titles_from_db()
+
+    # Calculate jaccard similarity based on scored and non-scored titles to identify a pattern of user preferences in
+    # casting
+    jaccard_similarities = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
+    # Filter out the positive similarity scores
+    positive_scores = filter_positive_similarity_scores(jaccard_similarities, threshold)
+    # Update ONLY the positive similarity scores in the database (it only takes extra time to update the 0 scores and
+    # has no added value to the application)
+    updated_jaccard_scores = update_jaccard_similarity(positive_scores)
+    print(f'Lenght of updated jaccard scores: {len(updated_jaccard_scores)}')
 
 # --- Old code ---
 

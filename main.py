@@ -4,7 +4,7 @@
 import tkinter as tk
 
 # Import the necessary functions from the other files
-from decision_tree import get_user_scores, get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query, check_reached_num_suggestions
+from decision_tree import get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query, check_reached_num_suggestions
 from gui import NetflixGUI
 from shared import connect_db, clean_slate, print_attributes, new_print_title_attributes, get_sample_title, get_standup_comedy_titles, get_tv_show_titles, get_movie_titles
 from recommendations import get_recommendations
@@ -30,6 +30,9 @@ def main():
     gui_instance.pref_button.config(command=lambda: gui_instance.go_to_preferences())
     gui_instance.recommend_button.config(command=lambda: gui_instance.submit_preferences(netflix_titles, num_suggestions))
 
+    # Calculate and update jaccard similarity scores in the database
+    # process_recommendations(threshold)
+
     # Start the GUI main loop
     window.mainloop()
 
@@ -45,7 +48,7 @@ if __name__ == '__main__':
     # # Switch out the filtered_recommended_titles with recommended_titles to test the function
     # get_user_scores(
     #     filtered_recommended_titles)
-    # TODO: Find a way to incorporate the jaccard_similarities and updated_jaccard_scores in the GUI
+    # TODO: Find a way to incorporate the jaccard_similarities and updated_jaccard_scores while GUI is running
     # # Get the scored titles from the database
     # scored_titles = get_scored_titles_from_db()
     # # Get non-scored titles from the database

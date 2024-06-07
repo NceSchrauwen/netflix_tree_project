@@ -8,7 +8,7 @@ from db_functions import get_titles_to_select_from_db, get_query_title_from_db
 from other_functions import get_show_id_title
 from shared import connect_db
 from recommendations import get_recommendations
-from decision_tree import incorporate_user_feedback
+from decision_tree import incorporate_user_feedback, process_recommendations, threshold
 import decision_tree
 
 
@@ -351,6 +351,9 @@ class NetflixGUI:
             self.populate_rec_titles(filtered_recommended_titles)
         else:
             print("No filtered recommended titles to populate the GUI.")
+
+        # Calculate and update jaccard similarity scores in the database
+        process_recommendations(threshold)
 
         return filtered_recommended_titles
 

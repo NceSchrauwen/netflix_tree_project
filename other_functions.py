@@ -19,6 +19,8 @@ def normalize_genre(genre):
         "Romantic TV Shows": "Romantic",
         "Stand-Up Comedy": "Comedy",
         "Stand-Up Comedy & Talk Shows": "Comedy"
+        "Classic & Cult TV: Classic"
+        "Classic Movies: Classic"
         # Add more mappings as needed
     }
     return normalization_dict.get(genre.strip(), genre.strip())  # Default to the original genre if not found
@@ -46,24 +48,31 @@ def write_genre_counts(genre_counts):
         for genre, count in genre_counts.items():
             writer.writerow([genre, count])
 
-
+# Function to check if the user has achieved any of the achievements
 def check_achievement(genre_counts):
-    global achievement_output
-    achievement_output = None
-
+    # Define the achievements and the required count for each genre
     achievements = {
         'Horror Fanatic': ('Horror', 3),
         'Comedy Lover': ('Comedy', 3),
-        'Hopeless Romantic': ('Romantic', 3)
+        'Hopeless Romantic': ('Romantic', 3),
+        'Classic Enthusiast': ('Classic', 3)
     }
 
+    # Create a dictionary to store the achievements and whether they have been achieved, set to False by default
+    achieved_milestones = {achievement: False for achievement in achievements}
+
     for achievement, (genre, count) in achievements.items():
-        if genre_counts[genre] >= count:
-            achievement_output = f'Congratulations! You are a "{achievement}"!'
-            genre_counts[genre] = 0  # Reset the count for the genre after achieving the milestone
+        if genre_counts[genre] > 0 and genre_counts[genre] % count == 0:
+            achieved_milestones[achievement] = True
+            print(f'Congratulations! You are a "{achievement}"! @other_functions.py:check_achievement()')
+
+    # print(
+    #     f'Achievements after checking: {achieved_milestones} @other_functions.py:check_achievement()')  # Debug statement
+    # print(f'Genre counts after checking: {genre_counts} @other_functions.py:check_achievement()' )  # Debug statement
 
     write_genre_counts(genre_counts) # Update the genre counts in the CSV file
-    return achievement_output
+    return achieved_milestones
+
 
 # Function to get the title object based on the show ID, will use the show_id based on the user input
 # Then the genres will be counted and updated in the genre_counts.csv file

@@ -3,14 +3,15 @@
 #Date: 17/05/2024
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
-from other_functions import get_show_id_title
+from other_functions import get_show_id_title, read_genre_counts, check_achievement
 from shared import connect_db
 from recommendations import get_recommendations
 from decision_tree import incorporate_user_feedback, process_recommendations, threshold
 import decision_tree
 
+# global achievement_output
 
 class NetflixGUI:
     def __init__(self, window):
@@ -355,6 +356,16 @@ class NetflixGUI:
         # Calculate and update jaccard similarity scores in the database
         process_recommendations(threshold)
 
+        genre_counts = read_genre_counts()
+        # Convert the genre counts to a dictionary (it converted differently somewhat than expected)
+        genre_counts = dict(genre_counts)
+
+        # Check if the user has achieved any milestones based on the genre counts
+        achieved_milestones = check_achievement(genre_counts)
+
+        # Process the achievements based on the milestones achieved with a popup message
+        self.process_achievements(achieved_milestones)
+
         return filtered_recommended_titles
 
     # Function to populate the Treeview with the recommended titles
@@ -392,5 +403,20 @@ class NetflixGUI:
         # Handle exceptions
         except ValueError:
             print("Error: Invalid input. Please enter a comma-separated list of integers. (e.g. 1, 32, 234, etc.)")
+
+    # Function to create a message for the achievement popup based on the achieved milestones
+    def process_achievements(self, achieved_milestones):
+        # Loop through the achieved milestones
+        for achievement, achieved in achieved_milestones.items():
+            # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
+            if achieved:
+                message = f"Congratulations! You have achieved the milestone: {achievement}!"
+                print(f'Output should be: {message} @gui.py:process_achievements')
+                self.show_achievement_popup(message)
+
+    # Function to show a popup with the achievement message, message created in process_achievements
+    def show_achievement_popup(self, message):
+        # print(f'Showing popup with achievement: {message} @gui.py:show_achievement_popup')  # Debug print statement
+        messagebox.showinfo("Achievement Unlocked!", message)
 
 

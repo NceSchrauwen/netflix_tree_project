@@ -1,13 +1,11 @@
 #Developed by: Nina Schrauwen
 #Date: 11/04/2024
 #Description: This is the main file of the Netflix recommendation system. It connects to the database, retrieves the Netflix titles, and selects a random title. It then builds a decision tree and retrieves the recommended titles.
-import tkinter as tk
 
 # Import the necessary functions from the other files
-from decision_tree import get_scored_titles_from_db, get_non_scored_titles_from_db, get_recommendations_based_on_similarity, filter_positive_similarity_scores, update_jaccard_similarity, threshold, recommended_threshold, filter_recommended_titles, get_flexible_title_query, check_reached_num_suggestions
 from gui import NetflixGUI
-from shared import connect_db, clean_slate, print_attributes, new_print_title_attributes, get_sample_title, get_standup_comedy_titles, get_tv_show_titles, get_movie_titles
-from recommendations import get_recommendations
+from shared import connect_db
+import tkinter as tk
 
 global netflix_titles
 global gui_instance # Global variable to store the GUI instance

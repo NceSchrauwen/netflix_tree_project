@@ -2,16 +2,14 @@
 #Description: This is the GUI file of the Netflix recommendation system. This file contains all elements and functionalities of the GUI.
 #Date: 17/05/2024
 
-import tkinter as tk
 from tkinter import ttk, messagebox
 from db_functions import get_titles_to_select_from_db, get_query_title_from_db
-from other_functions import get_show_id_title, read_genre_counts, check_achievement
+from other_functions import get_show_id_title, read_genre_counts, check_achievement, read_completed_achievements, write_completed_achievements
 from shared import connect_db
 from recommendations import get_recommendations
 from decision_tree import incorporate_user_feedback, process_recommendations, threshold
 import decision_tree
 
-# global achievement_output
 
 class NetflixGUI:
     def __init__(self, window):
@@ -341,6 +339,11 @@ class NetflixGUI:
 
     # Function to submit the preferences and get the recommendations
     def submit_preferences(self, netflix_titles, num_suggestions):
+        # Before any user input, check if any achievements have been reached
+        # Pre-check achievements
+        # genre_counts = read_genre_counts()
+        # pre_achieved_milestones = pre_check_achievements(genre_counts)  # Adjust counts before user input
+
         # Get the user input from the preferences tab
         self.get_user_input()
         # Go to recommendations tab
@@ -363,8 +366,14 @@ class NetflixGUI:
         # Check if the user has achieved any milestones based on the genre counts
         achieved_milestones = check_achievement(genre_counts)
 
+        # Ensure achieved_milestones is not None
+        if achieved_milestones is None:
+            achieved_milestones = {}
+
         # Process the achievements based on the milestones achieved with a popup message
         self.process_achievements(achieved_milestones)
+
+        print(f'Output should be: {achieved_milestones} @gui.py:submit_preferences')
 
         return filtered_recommended_titles
 
@@ -406,17 +415,32 @@ class NetflixGUI:
 
     # Function to create a message for the achievement popup based on the achieved milestones
     def process_achievements(self, achieved_milestones):
+        completed_achievements = read_completed_achievements()
+
         # Loop through the achieved milestones
         for achievement, achieved in achieved_milestones.items():
             # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
-            if achieved:
+            if achieved and not completed_achievements.get(achievement, False):
                 message = f"Congratulations! You have achieved the milestone: {achievement}!"
-                print(f'Output should be: {message} @gui.py:process_achievements')
                 self.show_achievement_popup(message)
+                completed_achievements[achievement] = True
+                print(f'Output should be: {message} @gui.py:process_achievements')
+
+        write_completed_achievements(completed_achievements)  # Update the completed achievements in the file
+
 
     # Function to show a popup with the achievement message, message created in process_achievements
     def show_achievement_popup(self, message):
         # print(f'Showing popup with achievement: {message} @gui.py:show_achievement_popup')  # Debug print statement
         messagebox.showinfo("Achievement Unlocked!", message)
 
+
+# --- Old code snippets ---
+    # # Loop through the achieved milestones
+    # for achievement, achieved in achieved_milestones.items():
+    #     # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
+    #     if achieved:
+    #         message = f"Congratulations! You have achieved the milestone: {achievement}!"
+    #         print(f'Output should be: {message} @gui.py:process_achievements')
+    #         self.show_achievement_popup(message)
 

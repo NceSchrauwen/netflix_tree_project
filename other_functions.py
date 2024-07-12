@@ -6,6 +6,7 @@ import csv
 from collections import defaultdict
 
 CSV_FILE_PATH = 'genre_counts.csv'
+ACHIEVEMENTS_FILE = 'completed_achievements.txt'
 
 global achievement_output
 
@@ -33,7 +34,7 @@ def read_genre_counts():
         with open(CSV_FILE_PATH, mode='r', newline='') as file:
             reader = csv.reader(file)
             for row in reader:
-                if not row:
+                if len(row) != 2:  # Skip rows that do not have exactly 2 values
                     continue
                 genre, count = row
                 genre_counts[genre.strip()] = int(count)
@@ -48,6 +49,28 @@ def write_genre_counts(genre_counts):
         for genre, count in genre_counts.items():
             writer.writerow([genre, count])
 
+# Function to read the completed achievements from a file
+def read_completed_achievements():
+    try:
+        with open(ACHIEVEMENTS_FILE, 'r') as file:
+            completed_achievements = {line.split(':')[0]: line.split(':')[1].strip() == 'True' for line in file}
+    except FileNotFoundError:
+        completed_achievements = {}
+    return completed_achievements
+
+# Function to write the completed achievements to a file
+def write_completed_achievements(completed_achievements):
+    with open(ACHIEVEMENTS_FILE, 'w') as file:
+        for achievement, shown in completed_achievements.items():
+            file.write(f"{achievement}:{shown}\n")
+
+# Function to reset the completed achievement status after showing the achievement, not used for now
+def reset_achievement_status(achievement):
+    completed_achievements = read_completed_achievements()
+    completed_achievements[achievement] = True
+    write_completed_achievements(completed_achievements)
+
+
 # Function to check if the user has achieved any of the achievements
 def check_achievement(genre_counts):
     # Define the achievements and the required count for each genre
@@ -58,21 +81,26 @@ def check_achievement(genre_counts):
         'Classic Enthusiast': ('Classic', 3)
     }
 
+    # Read the completed achievements from the file
+    completed_achievements = read_completed_achievements()
+
     # Create a dictionary to store the achievements and whether they have been achieved, set to False by default
     achieved_milestones = {achievement: False for achievement in achievements}
 
     for achievement, (genre, count) in achievements.items():
-        if genre_counts[genre] > 0 and genre_counts[genre] % count == 0:
+        # If the achievement is true it has been completed, genre count has to be equal to the count
+        if genre in genre_counts and genre_counts[genre] == count and not completed_achievements.get(achievement, True):
             achieved_milestones[achievement] = True
             print(f'Congratulations! You are a "{achievement}"! @other_functions.py:check_achievement()')
+            completed_achievements[achievement] = False # Update the completed achievements genre
 
-    # print(
-    #     f'Achievements after checking: {achieved_milestones} @other_functions.py:check_achievement()')  # Debug statement
-    # print(f'Genre counts after checking: {genre_counts} @other_functions.py:check_achievement()' )  # Debug statement
-
+    write_completed_achievements(completed_achievements) # Update the completed achievements in the file
     write_genre_counts(genre_counts) # Update the genre counts in the CSV file
     return achieved_milestones
 
+# print(
+    #     f'Achievements after checking: {achieved_milestones} @other_functions.py:check_achievement()')  # Debug statement
+    # print(f'Genre counts after checking: {genre_counts} @other_functions.py:check_achievement()' )  # Debug statement
 
 # Function to get the title object based on the show ID, will use the show_id based on the user input
 # Then the genres will be counted and updated in the genre_counts.csv file

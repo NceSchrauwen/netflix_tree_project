@@ -55,7 +55,7 @@ class NetflixGUI:
         tree_frame.pack(fill="both", expand=True)
 
         # Create a Treeview widget to display the titles
-        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In")
+        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In", "Score", "Jaccard Similarity")
         self.treeView1 = ttk.Treeview(tree_frame, columns=self.columns, show='headings')
 
         # Scrollbar Setup (inside treeview_frame)
@@ -173,7 +173,7 @@ class NetflixGUI:
         tree_frame3.pack(fill="both", expand=True)
 
         # Create a Treeview widget to display the titles
-        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In")
+        self.columns = ("Show-ID", "Type", "Title", "Country", "Release Year", "Rating", "Duration", "Listed In", "Score", "Jaccard Similarity")
         self.treeView2 = ttk.Treeview(tree_frame3, columns=self.columns, show='headings')
 
         # Scrollbar Setup (inside treeview_frame)
@@ -236,7 +236,7 @@ class NetflixGUI:
         for title in titles:
             # Only include the values for the selected columns
             values = (title.show_id, title.type, title.title, title.country, title.release_year,
-                      title.rating, title.duration, title.listed_in)
+                      title.rating, title.duration, title.listed_in, title.score, title.jaccard_similarity)
             self.treeView1.insert('', 'end', values=values)
 
         # Update button states
@@ -281,12 +281,12 @@ class NetflixGUI:
         # If no results are found, insert a row with "No results found" message
         if not results:
             # Insert a row with "No results found" message
-            self.treeView1.insert('', 'end', values=("No results found", "", "", "", "", "", "", ""))
+            self.treeView1.insert('', 'end', values=("No results found", "", "", "", "", "", "", "", "", ""))
         else:
             # Insert the search results into the Treeview
             for result in results:
                 values = (result.show_id, result.type, result.title, result.country, result.release_year,
-                          result.rating, result.duration, result.listed_in)
+                          result.rating, result.duration, result.listed_in, result.score, result.jaccard_similarity)
                 self.treeView1.insert('', 'end', values=values)
 
     def on_double_click(self, event):
@@ -339,11 +339,6 @@ class NetflixGUI:
 
     # Function to submit the preferences and get the recommendations
     def submit_preferences(self, netflix_titles, num_suggestions):
-        # Before any user input, check if any achievements have been reached
-        # Pre-check achievements
-        # genre_counts = read_genre_counts()
-        # pre_achieved_milestones = pre_check_achievements(genre_counts)  # Adjust counts before user input
-
         # Get the user input from the preferences tab
         self.get_user_input()
         # Go to recommendations tab
@@ -386,7 +381,7 @@ class NetflixGUI:
         # Insert the recommended titles into the Treeview with the corresponding values
         for title in recommended_titles:
             values = (title.show_id, title.type, title.title, title.country, title.release_year,
-                      title.rating, title.duration, title.listed_in)
+                      title.rating, title.duration, title.listed_in, title.score, title.jaccard_similarity)
             self.treeView2.insert('', 'end', values=values)
 
         # Set filtered titles, to later use in get_user_scores
@@ -417,30 +412,31 @@ class NetflixGUI:
     def process_achievements(self, achieved_milestones):
         completed_achievements = read_completed_achievements()
 
+        # Debug print statements
+        print(f'Achieved milestones: {achieved_milestones}')
+        print(f'Completed achievements before processing: {completed_achievements}')
+
         # Loop through the achieved milestones
         for achievement, achieved in achieved_milestones.items():
+            print(f'Processing achievement: {achievement}, Achieved: {achieved}')
             # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
-            if achieved and not completed_achievements.get(achievement, False):
+            if completed_achievements.get(achievement, False):
+                print(f'Achievement {achievement} achieved and not previously completed.')
                 message = f"Congratulations! You have achieved the milestone: {achievement}!"
                 self.show_achievement_popup(message)
-                completed_achievements[achievement] = True
+                completed_achievements[achievement] = False
                 print(f'Output should be: {message} @gui.py:process_achievements')
 
         write_completed_achievements(completed_achievements)  # Update the completed achievements in the file
+        print(f'Completed achievements updated: {completed_achievements}')
 
 
     # Function to show a popup with the achievement message, message created in process_achievements
     def show_achievement_popup(self, message):
         # print(f'Showing popup with achievement: {message} @gui.py:show_achievement_popup')  # Debug print statement
         messagebox.showinfo("Achievement Unlocked!", message)
+        print(f'Showing popup with message: {message}')
 
 
-# --- Old code snippets ---
-    # # Loop through the achieved milestones
-    # for achievement, achieved in achieved_milestones.items():
-    #     # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
-    #     if achieved:
-    #         message = f"Congratulations! You have achieved the milestone: {achievement}!"
-    #         print(f'Output should be: {message} @gui.py:process_achievements')
-    #         self.show_achievement_popup(message)
+
 

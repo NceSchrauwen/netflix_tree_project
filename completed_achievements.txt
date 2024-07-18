@@ -1,1 +1,1 @@
-Horror Fanatic:True
+Horror Fanatic:False

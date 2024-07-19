@@ -52,24 +52,24 @@ def write_genre_counts(genre_counts):
 # Function to read the completed achievements from a file
 def read_completed_achievements():
     completed_achievements = {}
-    with open('completed_achievements.txt', 'r') as file:
-        for line in file:
-            line = line.strip()  # Remove leading/trailing whitespace
-            if not line:
-                continue  # Skip empty or whitespace-only lines
-            parts = line.split(':')  # Split the line by colon
-            if len(parts) == 2:
-                completed_achievements[parts[0].strip()] = parts[1].strip() == 'True'
-            else:
-                print(f"Skipping malformed line: {line}")
+    try:
+        with open('completed_achievements.txt', 'r') as file:
+            for line in file:
+                parts = line.split(':')
+                if len(parts) == 2:
+                    completed_achievements[parts[0].strip()] = parts[1].strip() == 'True'
+                else:
+                    print(f"Skipping malformed line: {line.strip()}")
+    except FileNotFoundError:
+        # If the file doesn't exist, we assume no achievements have been completed.
+        pass
     return completed_achievements
 
-
-# Function to write the completed achievements to a file
 def write_completed_achievements(completed_achievements):
-    with open(ACHIEVEMENTS_FILE, 'w') as file:
-        for achievement, shown in completed_achievements.items():
-            file.write(f"{achievement}:{shown}\n")
+    with open('completed_achievements.txt', 'w') as file:
+        for achievement, completed in completed_achievements.items():
+            file.write(f'{achievement}: {completed}\n')
+
 
 # Function to reset the completed achievement status after showing the achievement, not used for now
 def reset_achievement_status(achievement):
@@ -100,10 +100,17 @@ def check_achievement(genre_counts):
 
     for achievement, (genre, count) in achievements.items():
         # If the achievement is true it has been completed, genre count has to be equal to the count
-        if genre in genre_counts and genre_counts[genre] == count and not completed_achievements.get(achievement, False):
-            achieved_milestones[achievement] = True
-            print(f'Congratulations! You are a "{achievement}"! @other_functions.py:check_achievement()')
-            completed_achievements[achievement] = True # Update the completed achievements genre
+        if genre in genre_counts and genre_counts[genre] >= count:
+            if completed_achievements.get(achievement, None) is None or completed_achievements[achievement] is True:
+                achieved_milestones[achievement] = True
+                completed_achievements[achievement] = True  # Update the completed achievements genre
+                print(f'Congratulations! You are a "{achievement}"! @other_functions.py:check_achievement()')
+            elif completed_achievements[achievement] is False:
+                print(f'You have already achieved the "{achievement}" milestone! @other_functions.py:check_achievement()')
+            else:
+                print(f'Already completed. Achievement: {achievement} @other_functions.py:check_achievement()')
+        else:
+            print(f'Not enough genre count titles to achieve "{achievement}" milestone. @other_functions.py:check_achievement()')
 
     write_completed_achievements(completed_achievements) # Update the completed achievements in the file
     write_genre_counts(genre_counts) # Update the genre counts in the CSV file

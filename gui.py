@@ -356,7 +356,9 @@ class NetflixGUI:
 
         genre_counts = read_genre_counts()
         # Convert the genre counts to a dictionary (it converted differently somewhat than expected)
-        genre_counts = dict(genre_counts)
+        # genre_counts = dict(genre_counts)
+        genre_counts = {k: int(v) for k, v in genre_counts.items()}  # Ensure the counts are integers
+        # print(f'Converted genre counts: {genre_counts}')
 
         # Check if the user has achieved any milestones based on the genre counts
         achieved_milestones = check_achievement(genre_counts)
@@ -413,22 +415,25 @@ class NetflixGUI:
         completed_achievements = read_completed_achievements()
 
         # Debug print statements
-        print(f'Achieved milestones: {achieved_milestones}')
-        print(f'Completed achievements before processing: {completed_achievements}')
+        # print(f'Achieved milestones: {achieved_milestones}')
+        # print(f'Completed achievements before processing: {completed_achievements}')
 
         # Loop through the achieved milestones
         for achievement, achieved in achieved_milestones.items():
-            print(f'Processing achievement: {achievement}, Achieved: {achieved}')
+            # print(f'Processing achievement: {achievement}, Achieved: {achieved}')
             # If the milestone has been achieved, create a message based on the milestone achieved and show a popup
-            if completed_achievements.get(achievement, False):
+            if completed_achievements.get(achievement, True): # If achieved and not yet shown, aka True
                 print(f'Achievement {achievement} achieved and not previously completed.')
                 message = f"Congratulations! You have achieved the milestone: {achievement}!"
                 self.show_achievement_popup(message)
                 completed_achievements[achievement] = False
                 print(f'Output should be: {message} @gui.py:process_achievements')
+            elif completed_achievements.get(achievement, False):
+                print(f'Achievement {achievement} has already been completed.')
+            else:
+                print(f'Already completed or not enough genre count. Achievement: {achievement}')
 
         write_completed_achievements(completed_achievements)  # Update the completed achievements in the file
-        print(f'Completed achievements updated: {completed_achievements}')
 
 
     # Function to show a popup with the achievement message, message created in process_achievements

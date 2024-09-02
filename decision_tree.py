@@ -6,6 +6,7 @@
 import random
 import mysql
 import mysql.connector
+import time
 from title import NetflixTitle
 
 # Global variables
@@ -57,7 +58,8 @@ def get_scored_titles_from_db():
         cursor = mydb.cursor()
 
         # Execute the SQL query to select scored titles
-        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE score != 0")
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM test_netflix_movies WHERE score != 0") # Replaced with test_netflix_movies to test without pre existing data
+
 
         # Fetch all the rows
         rows = cursor.fetchall()
@@ -99,7 +101,8 @@ def get_non_scored_titles_from_db():
         cursor = mydb.cursor()
 
         # Execute the SQL query to select scored titles
-        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE score = 0")
+        cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM test_netflix_movies WHERE score = 0") # Replaced with test_netflix_movies to test without pre existing data
+        # cursor.execute("SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE score = 0")
 
         # Fetch all the rows
         rows = cursor.fetchall()
@@ -140,7 +143,8 @@ def get_user_query_title_from_db(query_title):
         cursor = mydb.cursor()
 
         # Execute the SQL query to select scored titles
-        query = "SELECT * FROM netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
+        query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower()) # Replaced with test_netflix_movies to test without pre existing data
+        # query = "SELECT * FROM netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
         cursor.execute(query)
 
         # Fetch all the rows
@@ -172,7 +176,8 @@ def get_user_query_title_from_db(query_title):
 
 
 # Function to update the jaccard similarity scores in the database, designed to only update the jaccard similarity
-# scores that have changed or that have not been set yet
+# scores that have changed or that have not been set yet.
+# Input data are always only the positive similarity scores, filter first using the filter_positive_similarity_scores function
 def update_jaccard_similarity(jaccard_data):
     updated_jaccard_titles = []
 
@@ -191,7 +196,8 @@ def update_jaccard_similarity(jaccard_data):
 
         # Retrieve all titles and their current jaccard similarity scores from the database
         # Whether a jaccard score is set or not is irrelevant
-        cursor.execute("SELECT title, jaccard_similarity FROM netflix_movies")
+        cursor.execute("SELECT title, jaccard_similarity FROM test_netflix_movies") # Replace with test_netflix_movies to test without pre existing data
+        # cursor.execute("SELECT title, jaccard_similarity FROM netflix_movies")
         current_jaccard_data = cursor.fetchall()
         # print(f'Found {len(current_jaccard_data)} titles before updating jaccard scores')
 
@@ -227,15 +233,16 @@ def update_jaccard_similarity(jaccard_data):
             print(f"Title: {title}, Reason: {reason}")
             if reason != "No change":
                 cursor.execute(
-                    "UPDATE netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (jaccard_similarity, title)
-                )
+                    "UPDATE test_netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (jaccard_similarity, title)
+                ) # Replace with test_netflix_movies to test without pre existing data, "UPDATE netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (jaccard_similarity, title)
                 update_count += 1
 
         mydb.commit()  # Commit the transaction
         print(f"Number of rows updated: {update_count}") # Print the number of rows updated
 
         # Execute the SQL query to select titles with jaccard scores above 0
-        select_query = "SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE jaccard_similarity > 0"
+        select_query = "SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM test_netflix_movies WHERE jaccard_similarity > 0" # Replaced with test_netflix_movies to test without pre existing data
+        # select_query = "SELECT show_id, type, title, director, cast, country, date_added, release_year, rating, duration, listed_in, description, score, jaccard_similarity FROM netflix_movies WHERE jaccard_similarity > 0"
         cursor.execute(select_query)
         updated_jaccard_titles = [NetflixTitle(*row) for row in cursor.fetchall()]
 
@@ -410,10 +417,14 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
-# TODO: Attach this function to the GUI to be able to display the recommended titles, without causing circular imports
+# TODO: update git
 # Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
+
+    # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
+    # the list. Do this before ordering the list order depending on what is needed.
+    random.shuffle(filtered_titles)
 
     print(f'(Before) Length of filtered titles: {len(filtered_titles)}')
 
@@ -429,7 +440,7 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     filtered_titles = list(set(filtered_titles))
 
     # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
-    # the list
+    # the list. Do this now again because the list got updated.
     random.shuffle(filtered_titles)
 
     print(f'--- Filtered Titles ---')
@@ -869,7 +880,8 @@ def db_update_score(show_id):
         cursor = mydb.cursor()
 
         # Increment the score by 5 for the given title
-        cursor.execute(f'UPDATE netflix_movies SET score = score + 5 WHERE show_id = {show_id};')
+        cursor.execute(f'UPDATE test_netflix_movies SET score = score + 5 WHERE show_id = {show_id};') # Replaced with test_netflix_movies to test without pre existing data
+        # cursor.execute(f'UPDATE netflix_movies SET score = score + 5 WHERE show_id = {show_id};')
         # print(f'Title {title.title} ({title.show_id}) has been scored.')  # Print the new score
 
         # Commit the changes to the db
@@ -877,7 +889,8 @@ def db_update_score(show_id):
         print("Score updated successfully in the database.")
 
         # Get the updated title from the database AFTER committing the previous changes
-        cursor.execute(f'SELECT * FROM netflix_movies WHERE show_id = {show_id};')
+        cursor.execute(f'SELECT * FROM test_netflix_movies WHERE show_id = {show_id};') # Replaced with test_netflix_movies to test without pre existing data
+        # cursor.execute(f'SELECT * FROM netflix_movies WHERE show_id = {show_id};')
         # Fetch the updated title in the form of a NetflixTitle object
         updated_title = NetflixTitle(*cursor.fetchone())
 
@@ -894,50 +907,12 @@ def db_update_score(show_id):
             cursor.close()
             mydb.close()
 
-# TODO: Get rid of this old function
-# Ask the user to confirm if they want to continue without entering any indices
-# def confirm_continuation():
-#     while True:
-#         confirmation = input("No indices entered. Do you want to continue? (yes/no): ").strip().lower()
-#         if confirmation not in ("yes", "y"):
-#             print("Skipping scoring titles.")
-#             return False
-#         else:
-#             return True
-
 # Function to be able to score the selected recommendations and update the score in the database
 def incorporate_user_feedback(show_ids):
     # Loop through the show_ids and update the score of the title in the database
     for show_id in show_ids:
         db_update_score(show_id)
 
-# TODO: Get rid of this old function
-# Get user input for the scores of the recommended titles, this will then be used to update the score of the titles
-# def get_user_scores(recommended_titles):
-#     while True:
-#         # Ask the user to enter the indices of the titles they want to score
-#         user_input = input("Enter the indices of the titles you want to score (e.g., '1, 2, 4'): ").strip().lower()
-#         # print(f'User input: {user_input}')
-#
-#         # If there's no input form the user, ask for confirmation to continue
-#         if not user_input:
-#             if confirm_continuation():
-#                 continue
-#             else:
-#                 return None  # Exit the function if the user doesn't want to continue
-#
-#         try:
-#             selected_indices = [int(idx.strip()) for idx in user_input.split(",")]
-#             # If the index is within the range of the recommended titles then it's a valid index
-#             valid_indices = [idx for idx in selected_indices if 1 <= idx <= len(recommended_titles)]
-#             # If the length of the valid indices is equal to the length of the selected indices then break the loop
-#             if len(valid_indices) == len(selected_indices):
-#                 incorporate_user_feedback(recommended_titles, valid_indices)
-#                 return valid_indices
-#             else:
-#                 print("Invalid input. Please enter valid indices.")  # Invalid indices, retry
-#         except ValueError:
-#             print("Invalid input. Please enter valid indices (positive integers).")  # Invalid input, retry
 
 # Function to ask the user if there is any title they want to score, if so, update the score in the database
 def get_flexible_title_query():
@@ -992,8 +967,10 @@ def get_flexible_title_query():
             print("No titles found based on the search query.")
             return None
 
+# TODO: Implement a function to time how long it takes to update the scores in the database
 # Function to bring several function together to calculate and update the jaccard similarity scores in the database
 def process_recommendations(threshold):
+    start_time = time.time()
     # Get scored titles from the database
     scored_titles = get_scored_titles_from_db()
     # Get non-scored titles from the database
@@ -1007,52 +984,12 @@ def process_recommendations(threshold):
     # Update ONLY the positive similarity scores in the database (it only takes extra time to update the 0 scores and
     # has no added value to the application)
     updated_jaccard_scores = update_jaccard_similarity(positive_scores)
+
+    elapsed_time = time.time() - start_time
+    print(f" !-!-! Elapsed time to update the jaccard similarity scores in the database: {elapsed_time} seconds !-!-!")
     print(f'Lenght of updated jaccard scores: {len(updated_jaccard_scores)}')
 
-# --- Old code ---
 
-# Old console input function to get the user preferences for the decision tree
-# to get user input on multiple criteria
-# def get_user_input():
-#     # Get user input
-#     global country_preference
-#     global duration_preference
-#     global child_friendly_preference
-#     global classic_preference
-#
-#     while True:
-#         child_friendly_pref = input("Do you want to watch a child-friendly (under age 13) movie/season? (yes/no): ").strip().lower()
-#         if child_friendly_pref in ["yes", "no"]:
-#             child_friendly_preference = child_friendly_pref
-#             break
-#         else:
-#             print("Invalid input. Please enter 'yes' or 'no'.")
-#
-#     while True:
-#         classic_pref = input("Do you want to watch a classic movie/season? (yes/no): ").strip().lower()
-#         if classic_pref in ["yes", "no"]:
-#             classic_preference = classic_pref
-#             break
-#         else:
-#             print("Invalid input. Please enter 'yes' or 'no'.")
-#
-#     while True:
-#         duration_pref = input("Do you want to watch a short movie/season? (yes/no): ").strip().lower()
-#         if duration_pref in ["yes", "no"]:
-#             duration_preference = duration_pref
-#             break
-#         else:
-#             print("Invalid input. Please enter 'yes' or 'no'.")
-#
-#     while True:
-#         preference = input("Do you want to watch a movie from the US or the UK? (yes/no): ").strip().lower()
-#         if preference in ["yes", "no"]:
-#             country_preference = preference
-#             break
-#         else:
-#             print("Invalid input. Please enter 'yes' or 'no'.")
-#
-#     return country_preference, duration_preference, child_friendly_preference, classic_preference
 
 
 

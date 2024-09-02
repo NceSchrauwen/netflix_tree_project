@@ -26,7 +26,8 @@ def connect_db(num_results=200):
     cursor = mydb.cursor()
 
     # Execute SQL query
-    cursor.execute("SELECT * FROM netflix_titles.netflix_movies;")
+    cursor.execute("SELECT * FROM netflix_titles.test_netflix_movies;") # Replaced with test_netflix_movies to test without pre existing data
+    # cursor.execute("SELECT * FROM netflix_titles.netflix_movies;")
 
     # Fetch all rows into a list
     rows = cursor.fetchall()
@@ -54,7 +55,8 @@ def clean_slate():
         cursor = mydb.cursor()
 
         # Increment the score by 5 for the given title
-        cursor.execute(f'UPDATE netflix_movies SET score = 0;')
+        cursor.execute(f'UPDATE test_netflix_movies SET score = 0;') # Replaced with test_netflix_movies to test without pre existing data
+        # cursor.execute(f'UPDATE netflix_movies SET score = 0;')
 
         mydb.commit()
         print("Score updated successfully in the database.")

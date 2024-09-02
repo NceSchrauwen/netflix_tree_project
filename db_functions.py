@@ -23,7 +23,8 @@ def get_titles_to_select_from_db(start_index, end_index):
         cursor = mydb.cursor()
 
         # Execute the SQL query to select all titles from the database
-        cursor.execute(f'select * from netflix_movies limit {start_index}, {end_index};')
+        cursor.execute(f'select * from test_netflix_movies limit {start_index}, {end_index};') # Replaced with test_netflix_movies to test without pre existing data
+        # cursor.execute(f'select * from netflix_movies limit {start_index}, {end_index};')
 
         # Fetch all the rows
         rows = cursor.fetchall()
@@ -48,8 +49,10 @@ def get_titles_to_select_from_db(start_index, end_index):
     # Return the list of NetflixTitle objects to use in the GUI
     return titles_to_select
 
-def get_query_title_from_db(query_title):
+# Function to fetch specific titles regarding genre or names from the database
+def get_genre_title_from_db(query_title, genre):
     query_results = []
+    query = None
 
     try:
         # Connect to the database
@@ -64,8 +67,16 @@ def get_query_title_from_db(query_title):
         # Create a cursor to execute SQL queries
         cursor = mydb.cursor()
 
-        # Execute the SQL query to select scored titles
-        query = "SELECT * FROM netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
+        # Execute the SQL query to select a title based on a part of the name, no genre specified
+        if genre == "All" and query_title:
+            query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
+        # Execute the SQL query to select a title based on a specific part of a title and genre
+        elif query_title and genre:
+            query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%' AND listed_in LIKE '%{}%'".format(query_title.lower(), genre.lower())
+        # Execute the SQL query to select a title based on a specific genre, no title specified
+        elif genre and not query_title:
+            query = "SELECT * FROM test_netflix_movies WHERE listed_in LIKE '%{}%'".format(genre.lower())
+
         cursor.execute(query)
 
         # Fetch all the rows

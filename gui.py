@@ -2,8 +2,11 @@
 #Description: This is the GUI file of the Netflix recommendation system. This file contains all elements and functionalities of the GUI.
 #Date: 17/05/2024
 
-from tkinter import ttk, messagebox
-from db_functions import get_titles_to_select_from_db, get_query_title_from_db
+import tkinter as tk  # This imports tkinter and aliases it as tk
+from tkinter import ttk, messagebox  # This imports ttk and messagebox specifically
+
+
+from db_functions import get_titles_to_select_from_db, get_genre_title_from_db
 from other_functions import get_show_id_title, read_genre_counts, check_achievement, read_completed_achievements, write_completed_achievements
 from shared import connect_db
 from recommendations import get_recommendations
@@ -15,7 +18,7 @@ class NetflixGUI:
     def __init__(self, window):
         # Set window title and size
         self.window = window
-        self.window.title('Netflix Title Picker')
+        self.window.title('Netflix Title Assistant')
         self.window.geometry("1200x600")
 
         # Create a notebook widget to hold multiple tabs
@@ -40,15 +43,36 @@ class NetflixGUI:
         self.search_frame = ttk.Frame(self.tab1)
         self.search_frame.pack(pady=10)
 
-        self.search_label = ttk.Label(self.search_frame, text="Search for a title:")
+        self.search_label = ttk.Label(self.search_frame, text="Search for a title/genre:")
         self.search_label.pack(pady=5)
 
         self.search_entry = ttk.Entry(self.search_frame, width=30)
         self.search_entry.pack(side='left', pady=5)
 
+        self.genre_var = tk.StringVar()
+        self.genre_dropdown = ttk.Combobox(self.search_frame, textvariable=self.genre_var)
+        self.genre_dropdown['values'] = [
+            "All",  # Include an 'All' option to show all genres
+            "Anime Features", "Children & Family Movies", "Classic & Cult TV", "Classic Movies",
+            "Comedies", "Crime TV Shows", "Cult Movies", "Documentaries", "Docuseries", "Dramas",
+            "Faith & Spirituality", "Horror Movies", "Independent Movies", "International Movies",
+            "International TV Shows", "Kids' TV", "Korean TV Shows", "LGBTQ Movies", "Music & Musicals",
+            "Reality TV", "Romantic Movies", "Romantic TV Shows", "Sci-Fi & Fantasy", "Science & Nature TV",
+            "Spanish-Language TV Shows", "Sports Movies", "Stand-Up Comedy", "Stand-Up Comedy & Talk Shows",
+            "Teen TV Shows", "Thrillers", "TV Action & Adventure", "TV Comedies", "TV Dramas", "TV Horror",
+            "TV Mysteries", "TV Sci-Fi & Fantasy", "TV Thrillers", "Action & Adventure", "Anime Series",
+            "British TV Shows", "Movies"
+        ]
+        self.genre_dropdown.set("All")  # Set the default value to 'All'
+        self.genre_dropdown.pack(side='left', pady=5)
+
         # TODO: Update README to include the data source and how to set up the local database
         self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
         self.search_button.pack(side='left', pady=5)
+
+        # Reset button
+        self.reset_button = ttk.Button(self.search_frame, text="Reset", command=self.reset_search)
+        self.reset_button.pack(side='right', pady=5)
 
         # Create a frame to hold the Treeview and scrollbars
         tree_frame = ttk.Frame(self.tab1)
@@ -239,9 +263,9 @@ class NetflixGUI:
                       title.rating, title.duration, title.listed_in, title.score, title.jaccard_similarity)
             self.treeView1.insert('', 'end', values=values)
 
-        # Update button states
-        self.prev_button.config(state="disabled" if self.current_page == 1 else "normal")
-        self.next_button.config(state="disabled" if len(titles) < self.titles_per_page else "normal")
+        # Update button states based on amount of results
+        self.prev_button.config(state="disabled" if self.current_page == 1 else "normal") # Disable previous button if on first page
+        self.next_button.config(state="disabled" if len(titles) < self.titles_per_page else "normal") # Disable next button if on last page
 
 
     # Function to navigate to the previous page
@@ -268,10 +292,29 @@ class NetflixGUI:
 
     # Function to search for a title in the database
     def search_title(self):
-        query_title = self.search_entry.get()
-        if query_title:
-            results = get_query_title_from_db(query_title)
-            self.display_search_results(results)
+        results = None # Initialize results to None, so it can be filled within the if-elif block
+        query_title = self.search_entry.get() # Get the query title from the search entry field
+        selected_genre = self.genre_var.get()  # Get the selected genre from the dropdown menu
+
+        # Give search results based on specific genre and title name
+        if query_title and selected_genre:
+            results = get_genre_title_from_db(query_title, selected_genre)
+        # Give search results based on title name only
+        elif selected_genre == "All" and query_title:
+            selected_genre.lower()
+            results = get_genre_title_from_db(query_title, selected_genre)
+        # Give search results based on genre only
+        elif selected_genre and not query_title:
+            results = get_genre_title_from_db(query_title, selected_genre)
+
+        # Display the search results in the Treeview by calling the display_search_results function with the results
+        self.display_search_results(results)
+
+    # Function to reset the treeview to the original unfiltered set of titles
+    def reset_search(self):
+        self.search_entry.delete(0, 'end') # Empty the search entry field
+        self.genre_dropdown.set("All") # Set the genre dropdown to "All" so all titles will show
+        self.populate_treeview() # Repopulate the treeview with the original set of titles (which it had before)
 
     # Function to display the search results in the Treeview
     def display_search_results(self, results):
@@ -288,6 +331,10 @@ class NetflixGUI:
                 values = (result.show_id, result.type, result.title, result.country, result.release_year,
                           result.rating, result.duration, result.listed_in, result.score, result.jaccard_similarity)
                 self.treeView1.insert('', 'end', values=values)
+
+        # Update button states based on amount of results
+        self.prev_button.config(state="disabled" if self.current_page == 1 else "normal")  # Disable previous button if on first page
+        self.next_button.config(state="disabled" if len(results) < self.titles_per_page else "normal")  # Disable next button if on last page
 
     def on_double_click(self, event):
         try:
@@ -312,7 +359,7 @@ class NetflixGUI:
 
             netflix_titles = connect_db()
             title = get_show_id_title(netflix_titles, show_id)
-            self.selected_title = title   # Store the selected title in the class attribute to later access it in main.py
+            self.selected_title = title   # Store the selected title in the class attribute to later access via the gui_instance in main.py
             print(f"Selected title: {self.selected_title}")
         # Handle exceptions
         except Exception as e:

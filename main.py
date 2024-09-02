@@ -28,9 +28,6 @@ def main():
     gui_instance.pref_button.config(command=lambda: gui_instance.go_to_preferences())
     gui_instance.recommend_button.config(command=lambda: gui_instance.submit_preferences(netflix_titles, num_suggestions))
 
-    # Calculate and update jaccard similarity scores in the database
-    # process_recommendations(threshold)
-
     # Start the GUI main loop
     window.mainloop()
 
@@ -39,32 +36,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-# --- Old code snippets ---
-# filtered_recommended_titles = get_recommendations(gui_instance, netflix_titles, num_suggestions)
-    #
-    # # Call it here in order to get the user scores AFTER the recommendations have been printed
-    # # Switch out the filtered_recommended_titles with recommended_titles to test the function
-    # get_user_scores(
-    #     filtered_recommended_titles)
-    # TODO: Find a way to incorporate the jaccard_similarities and updated_jaccard_scores while GUI is running
-    # # Get the scored titles from the database
-    # scored_titles = get_scored_titles_from_db()
-    # # Get non-scored titles from the database
-    # non_scored_titles = get_non_scored_titles_from_db()
-    #
-    #
-    # # Get the recommendations based on similarity
-    # jaccard_similarities = get_recommendations_based_on_similarity(scored_titles, non_scored_titles)
-    # # print(f"Similarity score: {jaccard_similarities}")
-    #
-    # # Return and print all the titles that have a positive similarity score
-    # positive_scores = filter_positive_similarity_scores(jaccard_similarities, threshold)
-    # # print(f"Filtered positive similarity scores: {positive_scores}")
-    #
-    # # Update the jaccard similarity scores in the database - DON'T FORGET TO TURN THIS ON TO UPDATE THE DATABASE (but don't forget to turn it off again either due to performance issues)
-    # # updated_jaccard_scores = update_jaccard_similarity(positive_scores)
-    #
-    # # Get the flexible title query and score the queried titles based on the user input
-    # get_flexible_title_query()
+
 
 

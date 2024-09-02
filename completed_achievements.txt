@@ -1,4 +1,4 @@
 Horror Fanatic: False
 Comedy Lover: False
-Hopeless Romantic: False
 Classic Enthusiast: False
+Hopeless Romantic: False

@@ -417,10 +417,16 @@ def decide_title_type(selected_title, duration_preference, previous_titles):
     # Return the new list of titles
     return new_titles
 
-# TODO: update git
+# TODO: write test cases for this function (logical and physical)
 # Filter the recommended titles based on the threshold and the number of suggestion, if the threshold is not met then add the remaining titles from the recommended titles list
 def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
-    filtered_titles = [title for title in recommended_titles if title.jaccard_similarity > threshold]
+    # Filter the recommended titles based on the threshold, make sure the jaccard similarity is not None and is
+    # greater than the threshold
+    filtered_titles = [title for title in recommended_titles if title.jaccard_similarity is not None and title.jaccard_similarity > threshold]
+
+    # Initialize the scored and unscored titles lists to fill later
+    scored_titles = []
+    unscored_titles = []
 
     # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
     # the list. Do this before ordering the list order depending on what is needed.
@@ -439,16 +445,35 @@ def filter_recommended_titles(recommended_titles, threshold, num_suggestions):
     # Filter out all the duplicate entries from the filtered titles list
     filtered_titles = list(set(filtered_titles))
 
+    # Filter the list based on which titles have already been scored and which have not
+    for title in filtered_titles:
+        if title.score == 0 and title.jaccard_similarity > threshold:
+            # Then adding them into seperate lists to eventually blend later if necessary
+            unscored_titles.append(title)
+        else:
+            scored_titles.append(title)
+
+    print(f'Length of unscored titles: {len(unscored_titles)}')
+
+    # If there are not enough unscored titles, then add back scored titles to the unscored titles list until the
+    # number of suggestions is reached
+    if len(unscored_titles) < num_suggestions:
+        num_to_add = num_suggestions - len(unscored_titles)
+        print(f'Number of scored titles to add: {num_to_add}')
+        unscored_titles.extend(scored_titles[:num_to_add])
+
+    print(f'Length of unscored/scored titles: {len(unscored_titles)}')
+
     # Shuffle the list to get a random selection of titles to avoid repetition of the same exact titles at the top of
     # the list. Do this now again because the list got updated.
-    random.shuffle(filtered_titles)
+    random.shuffle(unscored_titles)
 
     print(f'--- Filtered Titles ---')
-    for title in filtered_titles:
+    for title in unscored_titles:
         print(f'Filtered Title: {title.title}, Show-ID: {title.show_id}, Jaccard Similarity: {title.jaccard_similarity}')
 
     # Return the filtered titles limited to the number of suggestions
-    return filtered_titles[:num_suggestions]
+    return unscored_titles[:num_suggestions]
 
 # Check if the number of recommendations has been reached
 def check_reached_num_suggestions(recommended_titles, num_suggestions):

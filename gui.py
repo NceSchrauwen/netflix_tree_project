@@ -49,9 +49,12 @@ class NetflixGUI:
         self.search_entry = ttk.Entry(self.search_frame, width=30)
         self.search_entry.pack(side='left', pady=5)
 
+        # Bind the search function to the key release event for real-time search
+        self.search_entry.bind("<KeyRelease>", self.search_title)  # Bind key release to the search function
+
         self.genre_var = tk.StringVar()
-        self.genre_dropdown = ttk.Combobox(self.search_frame, textvariable=self.genre_var)
-        self.genre_dropdown['values'] = [
+        # List of genres with 'All' at the top
+        genres = [
             "All",  # Include an 'All' option to show all genres
             "Anime Features", "Children & Family Movies", "Classic & Cult TV", "Classic Movies",
             "Comedies", "Crime TV Shows", "Cult Movies", "Documentaries", "Docuseries", "Dramas",
@@ -63,12 +66,21 @@ class NetflixGUI:
             "TV Mysteries", "TV Sci-Fi & Fantasy", "TV Thrillers", "Action & Adventure", "Anime Series",
             "British TV Shows", "Movies"
         ]
-        self.genre_dropdown.set("All")  # Set the default value to 'All'
-        self.genre_dropdown.pack(side='left', pady=5)
+
+        # Start slicing from index 1 to exclude 'All' from the sorted list, then sort alphabetically
+        sorted_genres = ["All"] + sorted(genres[1:])
+
+        # Define the genre dropdown menu and set the sorted genres as the values
+        self.genre_combobox = ttk.Combobox(self.search_frame, textvariable=self.genre_var, values=sorted_genres)
+        self.genre_combobox.set("All")  # Set the default value to 'All'
+        self.genre_combobox.pack(side='left', pady=5)
+
+        # Bind the search function to the combobox selection event to be able to search with a click
+        self.genre_combobox.bind("<<ComboboxSelected>>", self.search_title)  # Bind key release to the search function
 
         # TODO: Update README to include the data source and how to set up the local database
-        self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
-        self.search_button.pack(side='left', pady=5)
+        # self.search_button = ttk.Button(self.search_frame, text="Search", command=self.search_title)
+        # self.search_button.pack(side='left', pady=5)
 
         # Reset button
         self.reset_button = ttk.Button(self.search_frame, text="Reset", command=self.reset_search)
@@ -291,7 +303,7 @@ class NetflixGUI:
         self.notebook.select(self.tab3)
 
     # Function to search for a title in the database
-    def search_title(self):
+    def search_title(self, event=None):
         results = None # Initialize results to None, so it can be filled within the if-elif block
         query_title = self.search_entry.get() # Get the query title from the search entry field
         selected_genre = self.genre_var.get()  # Get the selected genre from the dropdown menu
@@ -313,7 +325,7 @@ class NetflixGUI:
     # Function to reset the treeview to the original unfiltered set of titles
     def reset_search(self):
         self.search_entry.delete(0, 'end') # Empty the search entry field
-        self.genre_dropdown.set("All") # Set the genre dropdown to "All" so all titles will show
+        self.genre_combobox.set("All") # Set the genre dropdown to "All" so all titles will show
         self.populate_treeview() # Repopulate the treeview with the original set of titles (which it had before)
 
     # Function to display the search results in the Treeview

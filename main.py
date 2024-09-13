@@ -24,7 +24,7 @@ def main():
     gui_instance.populate_treeview()
 
     # Set up event handlers for the buttons
-    gui_instance.search_button.config(command=lambda: gui_instance.search_title())
+    # gui_instance.search_button.config(command=lambda: gui_instance.search_title())
     gui_instance.pref_button.config(command=lambda: gui_instance.go_to_preferences())
     gui_instance.recommend_button.config(command=lambda: gui_instance.submit_preferences(netflix_titles, num_suggestions))
 

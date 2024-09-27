@@ -1,5 +1,5 @@
 #Developed by: Nina Schrauwen
-#Description: This file contains the NetflixTitle class.
+#Description: This file contains the NetflixTitle class, will be used to store the Netflix titles as objects
 #Date: 11/04/2024
 
 class NetflixTitle:
@@ -20,6 +20,7 @@ class NetflixTitle:
         self.score = score
         self.jaccard_similarity = jaccard_similarity
 
+    # method to print the object and its attributes
     def __str__(self):
         return f"Title: {self.title} - Release Year: {self.release_year} - Date Added: {self.date_added} - Listed In: {self.listed_in} - Type: {self.type}"
 

@@ -2,6 +2,7 @@
 #Date: 31/05/2024
 #Description: Functions that are being called in main.py but are being defined here to keep the code clean and to prevent circular imports.
 
+# Import necessary functions
 from other_functions import print_title_attributes
 from decision_tree import build_decision_tree, get_recommended_titles, filter_recommended_titles, check_reached_num_suggestions, recommended_threshold
 from shared import new_print_title_attributes
@@ -11,6 +12,7 @@ import decision_tree
 def get_recommendations(gui_instance, netflix_titles, num_suggestions):
     # Get the selected title from the GUI
     selected_title = gui_instance.selected_title
+    # If there is no title selected print a message stating that
     if selected_title == None:
         print("No title selected.")
         return
@@ -18,31 +20,26 @@ def get_recommendations(gui_instance, netflix_titles, num_suggestions):
     # Prints the sample title and its attributes to the console
     print_title_attributes(selected_title)
 
-    # Collect preferences set in the decision_tree module, otherwise it won't work properly in gui.py
+    # Collect preferences set them into their corresponding attribute within the decision_tree module
     child_friendly = decision_tree.child_friendly_preference
     classic = decision_tree.classic_preference
     duration = decision_tree.duration_preference
     country = decision_tree.country_preference
 
-    # Debug print statements
-    # print(f"Child friendly: {child_friendly}, Classic: {classic}, Duration: {duration}, Country: {country}")
-
-    # Build the decision tree
+    # Build the decision tree using the selected_title, netflix data, number of suggestions and preferences
     decision_tree_root = build_decision_tree(netflix_titles, selected_title, num_suggestions, child_friendly, classic, duration, country)
 
     # Get the recommended titles from the decision tree
     recommended_titles = get_recommended_titles(decision_tree_root, num_suggestions)
 
-    # Check if the recommended titles is None
+    # Check if the recommended titles is None, if so print a console message
     if recommended_titles is None:
         print("Error: Recommended titles is None.")
 
-    # Prints the results and the attributes of the recommendations to the console
-    # new_print_title_attributes(recommended_titles)
-
-    # Filter the recommended titles based on jaccard_similarity score, use output from decision tree to filter
+    # Filter the recommended titles based on the threshold, this will lead to multiple suggestions that all have different scores and jaccard similarities
     filtered_recommended_titles = filter_recommended_titles(recommended_titles, recommended_threshold, num_suggestions)
-    # Check if the filtered recommended titles is None
+
+    # Check if the filtered recommended titles is None, otherwise print a console message
     if filtered_recommended_titles is None:
         print("Error: Filtered recommended titles is None.")
 

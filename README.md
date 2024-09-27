@@ -5,3 +5,6 @@ Instead of basing it on one random sample in the future the user will pick its o
 That way a score is being kept and via a low-level machine learning way will the results be customized to the user's own past preference.
 
 Please keep in mind this is a work in progress and will keep being updated until the project is handed in and graded. 
+
+Dataset used (slightly altered and loaded in via panda dataframes):
+https://www.kaggle.com/shivamb/netflix-shows (Netflix dataset, 8807 entries, 2021)

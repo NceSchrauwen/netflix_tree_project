@@ -1,14 +1,16 @@
 #Developed by: Nina Schrauwen
-#Description: Functions to interact with the database.
+#Description: Functions to interact with the database and fetch the results.
 #Date: 17/05/2024
 
 import mysql.connector
 from title import NetflixTitle
 
 # Function to fetch titles from the database for the user to select in the GUI
+# With specific start and end indexes due to only being able to display a certain amount of titles per page
 def get_titles_to_select_from_db(start_index, end_index):
     titles_to_select = []
 
+    # Try to connect to the database and fetch the titles with specific indexes
     try:
         # Connect to the database
         mydb = mysql.connector.connect(
@@ -38,22 +40,20 @@ def get_titles_to_select_from_db(start_index, end_index):
             cursor.close()
             mydb.close()
 
-        # print(f'--- Netflix Titles: ---')
-
-    # Loop through the rows and create NetflixTitle objects
+    # Loop through the rows and store them as NetflixTitle objects in a list
     for row in rows:
         netflix_title = NetflixTitle(*row)
         titles_to_select.append(netflix_title)
-        # print(f'Title: {netflix_title.title} - Listed in: {netflix_title.listed_in} - Rating: {netflix_title.rating}')
 
-    # Return the list of NetflixTitle objects to use in the GUI
+    # Return the list of NetflixTitle objects to be able to use in the GUI
     return titles_to_select
 
-# Function to fetch specific titles regarding genre or names from the database
+# Function to fetch specific titles regarding genre and/or titles from the database
 def get_genre_title_from_db(query_title, genre):
     query_results = []
     query = None
 
+    # Try to connect to the database and fetch the titles based on a specific genre and/or title
     try:
         # Connect to the database
         mydb = mysql.connector.connect(
@@ -77,22 +77,26 @@ def get_genre_title_from_db(query_title, genre):
         elif genre and not query_title:
             query = "SELECT * FROM test_netflix_movies WHERE listed_in LIKE '%{}%'".format(genre.lower())
 
+        # Execute the query
         cursor.execute(query)
 
         # Fetch all the rows
         rows = cursor.fetchall()
 
+    # Catch any errors that might occur
     except mysql.connector.Error as err:
         print(f"Error: {err}")
 
+    # Close the database connection once the query is done
     finally:
         # Close the database connection
         if mydb.is_connected():
             cursor.close()
             mydb.close()
 
-    # Loop through the rows and create NetflixTitle objects
+    # Loop through the rows and create NetflixTitle objects to store in a list
     for row in rows:
         query_results.append(NetflixTitle(*row))
 
+    # Return the list of NetflixTitle objects to be able to use in the GUI
     return query_results

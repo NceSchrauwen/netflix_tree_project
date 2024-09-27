@@ -59,6 +59,8 @@ class NetflixGUI:
 
         # Define the genre variable and set it to a StringVar
         self.genre_var = tk.StringVar()
+        # Define the type variable and set it to a StringVar
+        self.type_var = tk.StringVar()
 
         # List of genres with 'All' at the top
         genres = [
@@ -74,17 +76,31 @@ class NetflixGUI:
             "British TV Shows", "Movies"
         ]
 
+        # List of types with 'All' at the top
+        types = ["All", "Movie", "TV Show"]
+
         # Start slicing from index 1 to exclude 'All' from the sorted list, then sort alphabetically
         sorted_genres = ["All"] + sorted(genres[1:])
+
+        # Start slicing from index 1 to exclude 'All' from the sorted list, then sort alphabetically
+        sorted_types = ["All"] + sorted(types[1:])
 
         # Define the genre dropdown menu and set the sorted genres as the values
         self.genre_combobox = ttk.Combobox(self.search_frame, textvariable=self.genre_var, values=sorted_genres)
         self.genre_combobox.set("All")  # Set the default value to 'All'
         self.genre_combobox.pack(side='left', pady=5)
 
+        self.type_combobox = ttk.Combobox(self.search_frame, textvariable=self.type_var, values=sorted_types)
+        self.type_combobox.set("All")  # Set the default value to 'All'
+        self.type_combobox.pack(side='left', pady=5)
+
         # Bind the search function to the combobox selection event to be able to search with a click
         # Whenever you select a genre, it will trigger the search function
         self.genre_combobox.bind("<<ComboboxSelected>>", self.search_title)
+
+        # Bind the search function to the combobox selection event to be able to search with a click
+        # Whenever you select a type, it will trigger the search function
+        self.type_combobox.bind("<<ComboboxSelected>>", self.search_title)
 
         # Define reset button and set it to the reset_search function
         self.reset_button = ttk.Button(self.search_frame, text="Reset", command=self.reset_search)
@@ -323,6 +339,7 @@ class NetflixGUI:
         # Clear the search field and reset the genre dropdown
         self.search_entry.delete(0, 'end')  # Clear the search field
         self.genre_combobox.set("All")  # Reset the genre dropdown to "All"
+        self.type_combobox.set("All")  # Reset the type dropdown to "All"
 
         # Clear the TreeView selections and refill it with the original titles
         self.treeView1.selection_remove(self.treeView1.selection())  # Remove any blue selection highlight
@@ -355,17 +372,30 @@ class NetflixGUI:
         results = None # Initialize results to None, so it can be filled later
         query_title = self.search_entry.get() # Get the query title from the search entry field
         selected_genre = self.genre_var.get()  # Get the selected genre from the dropdown menu
+        selected_type = self.type_var.get()  # Get the selected type from the dropdown menu
 
-        # If there is a query title and a selected genre, search for the title and genre in the database
-        if query_title and selected_genre:
-            results = get_genre_title_from_db(query_title, selected_genre)
-        # If there is a query title but no selected genre, search for the title in the database
-        elif selected_genre == "All" and query_title:
+        # If there is a query title, selected genre, and selected type, search for the title in the database
+        if query_title and selected_genre and selected_type:
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is only a query title, search for the title in the database
+        elif selected_genre == "All" and query_title and selected_type == "All":
             selected_genre.lower()
-            results = get_genre_title_from_db(query_title, selected_genre)
-        # If there is a selected genre but no query title, search for the genre in the database
-        elif selected_genre and not query_title:
-            results = get_genre_title_from_db(query_title, selected_genre)
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is a selected genre, search for the title in the database
+        elif selected_genre and not query_title and selected_type == "All":
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is a genre and a type, search for the title in the database
+        elif selected_genre and selected_type and not query_title:
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is a genre and a query title, search for the title in the database
+        elif selected_genre and query_title and selected_type == "All":
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is a type and a query title, search for the title in the database
+        elif selected_type and query_title and selected_genre == "All":
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
+        # If there is only a type, search for the title in the database
+        elif selected_type and not query_title and selected_genre == "All":
+            results = get_genre_title_from_db(query_title, selected_genre, selected_type)
 
         # Display the search results in the Treeview by calling the display_search_results function with the results
         self.display_search_results(results)
@@ -374,6 +404,7 @@ class NetflixGUI:
     def reset_search(self):
         self.search_entry.delete(0, 'end') # Empty the search entry field
         self.genre_combobox.set("All") # Set the genre dropdown to "All" so all titles will show
+        self.type_combobox.set("All")  # Set the type dropdown to "All" so all titles will show
         self.populate_treeview() # Repopulate the treeview with the original set of titles (which it had before)
 
         # Reset the scrollbar back to the top

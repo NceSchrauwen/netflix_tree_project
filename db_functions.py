@@ -49,7 +49,7 @@ def get_titles_to_select_from_db(start_index, end_index):
     return titles_to_select
 
 # Function to fetch specific titles regarding genre and/or titles from the database
-def get_genre_title_from_db(query_title, genre):
+def get_genre_title_from_db(query_title, genre, type):
     query_results = []
     query = None
 
@@ -67,15 +67,27 @@ def get_genre_title_from_db(query_title, genre):
         # Create a cursor to execute SQL queries
         cursor = mydb.cursor()
 
-        # Execute the SQL query to select a title based on a part of the name, no genre specified
-        if genre == "All" and query_title:
+        # If only the title is specified, fetch all titles that contain the title
+        if genre == "All" and query_title and type == "All":
             query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%'".format(query_title.lower())
-        # Execute the SQL query to select a title based on a specific part of a title and genre
-        elif query_title and genre:
+        # If the title and genre are specified, fetch all titles that contain the title and are of the specified genre
+        elif query_title and genre and type == "All":
             query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%' AND listed_in LIKE '%{}%'".format(query_title.lower(), genre.lower())
-        # Execute the SQL query to select a title based on a specific genre, no title specified
-        elif genre and not query_title:
+        # If only the genre is specified, fetch all titles that are of the specified genre
+        elif genre and not query_title and type == "All":
             query = "SELECT * FROM test_netflix_movies WHERE listed_in LIKE '%{}%'".format(genre.lower())
+        # If the title and type are specified, fetch all titles that contain the title and are of the specified type
+        elif query_title and type and genre == "All":
+            query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%' AND type LIKE '%{}%'".format(query_title.lower(), type.lower())
+        # If only the type is specified, fetch all titles that are of the specified type
+        elif type and not query_title and genre == "All":
+            query = "SELECT * FROM test_netflix_movies WHERE type LIKE '%{}%'".format(type.lower())
+        # If genre and type are specified, fetch all titles that are of the specified genre and type
+        elif genre and type and not query_title:
+            query = "SELECT * FROM test_netflix_movies WHERE listed_in LIKE '%{}%' AND type LIKE '%{}%'".format(genre.lower(), type.lower())
+        # If all three are specified, fetch all titles that contain the title, are of the specified genre and type
+        elif query_title and genre and type:
+            query = "SELECT * FROM test_netflix_movies WHERE title LIKE '%{}%' AND listed_in LIKE '%{}%' AND type LIKE '%{}%'".format(query_title.lower(), genre.lower(), type.lower())
 
         # Execute the query
         cursor.execute(query)

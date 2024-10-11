@@ -160,33 +160,24 @@ def update_jaccard_similarity(jaccard_data):
             # Get the existing jaccard similarity score for the title, otherwise it'll be set to 0
             existing_score = current_jaccard_dict.get(title, 0)
 
-            # Check if the existing score is 0 or if the existing score is not equal to the new jaccard similarity score
-            if (existing_score == 0) or (existing_score != jaccard_similarity):
+            # Check if the existing score is 0 and if jaccard similarity is not 0
+            if existing_score == 0 and existing_score != jaccard_similarity:
                 # Append the title and jaccard similarity to the list of titles to update
                 titles_to_update.append((jaccard_similarity, title))
-
-        print(f"Number of rows to update: {len(titles_to_update)}")
-
-        # Loop through the titles to update to get the score and title
-        for jaccard_similarity, title in titles_to_update:
-            existing_score = current_jaccard_dict.get(title)
-            # If a score previously had no score or was set to 0
-            if existing_score == 0 or existing_score is None:
-                reason = f"New score; {existing_score} to {jaccard_similarity}"
-            # If the new score isn't the same as the old one
+                print(f"New score; {existing_score} to {jaccard_similarity} with title: {title}")
+            # Check if the existing score is different from the new jaccard similarity score
             elif existing_score != jaccard_similarity:
-                reason = f"Score changed from {existing_score} to {jaccard_similarity}"
-            # All other options don't change the score so the reason is no change
-            else:
-                reason = "No change"
-            print(f"Title: {title}, Reason: {reason}")
-            # If the reason is not no change then update the title with corresponding jaccard_similarity score
-            if reason != "No change":
-                cursor.execute(
-                    "UPDATE test_netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (jaccard_similarity, title)
-                )
-                # To keep track of the number of rows updated
-                update_count += 1
+                # Append the title and jaccard similarity to the list of titles to update
+                titles_to_update.append((jaccard_similarity, title))
+                print(f"Score changed from {existing_score} to {jaccard_similarity} with title: {title}")
+
+        # Loop through the titles to update and update the jaccard similarity scores in the database
+        for titles in titles_to_update:
+            cursor.execute(
+                "UPDATE test_netflix_movies SET jaccard_similarity = %s WHERE title = %s;", (titles[0], titles[1])
+            )
+            # Increment the update count to keep track of the number of rows updated
+            update_count += 1
 
         # Commit the transaction to update the jaccard similarity scores
         mydb.commit()
@@ -199,7 +190,6 @@ def update_jaccard_similarity(jaccard_data):
         # Fetch all the rows and store them in a list of NetflixTitle objects
         updated_jaccard_titles = [NetflixTitle(*row) for row in cursor.fetchall()]
 
-        # print(f"Number of rows updated: {cursor.rowcount}")
         print(f"Number of positive jaccard titles found AFTER updating: {len(updated_jaccard_titles)}")
 
         # If there are updated jaccard titles, then print a message that the titles are being updated
@@ -543,151 +533,151 @@ def recursive_build_tree(node, netflix_data, selected_title, child_friendly_pref
                 criteria.append("Child-Friendly Titles")
                 recommended_titles = child_friendly_data
 
-            # If the user wants to watch a classic movie/season, create a new list of titles that were released before or at year 2010
-            if classic_preference == "yes":
-                classic_data = [title for title in child_friendly_data if title.release_year <= 2010]
+                # If the user wants to watch a classic movie/season, create a new list of titles that were released before or at year 2010
+                if classic_preference == "yes":
+                    classic_data = [title for title in child_friendly_data if title.release_year <= 2010]
 
-                # If there is classic_data, then add a left direction and the corresponding criteria to the list
-                if classic_data:
-                    directions.append("left")
-                    criteria.append("Classic Titles")
-                    recommended_titles = classic_data
+                    # If there is classic_data, then add a left direction and the corresponding criteria to the list
+                    if classic_data:
+                        directions.append("left")
+                        criteria.append("Classic Titles")
+                        recommended_titles = classic_data
 
-                    # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
-                    if duration_preference == "yes":
-                        short_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
+                        # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        if duration_preference == "yes":
+                            short_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
 
-                        # If there is short_classic_data, then add a left direction and the corresponding criteria to the list
-                        if short_classic_data:
-                            directions.append("left")
-                            criteria.append("Short Titles")
-                            recommended_titles = short_classic_data
+                            # If there is short_classic_data, then add a left direction and the corresponding criteria to the list
+                            if short_classic_data:
+                                directions.append("left")
+                                criteria.append("Short Titles")
+                                recommended_titles = short_classic_data
 
-                            # If the user wants to watch a title from the US or the UK, call the function is_us_or_uk_title to find out whether the title is from the US/UK and if that returns true then filter the titles based on the country preference
-                            if country_preference == "yes":
-                                us_uk_short_classic_data = [title for title in short_classic_data if is_us_or_uk_title(title)]
+                                # If the user wants to watch a title from the US or the UK, call the function is_us_or_uk_title to find out whether the title is from the US/UK and if that returns true then filter the titles based on the country preference
+                                if country_preference == "yes":
+                                    us_uk_short_classic_data = [title for title in short_classic_data if is_us_or_uk_title(title)]
 
-                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
-                                if us_uk_short_classic_data:
-                                    directions.append("left")
-                                    criteria.append("US/UK Titles")
-                                    recommended_titles = us_uk_short_classic_data
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_short_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_short_classic_data
 
-                            # If the user wants to watch a title from another country outside the US/Uk, call the function is_us_or_uk_title to find out whether the title is from the US/UK and if that returns true then filter the titles based on the country preference
-                            elif country_preference == "no":
-                                other_short_classic_data = [title for title in short_classic_data if is_outside_us_uk_title(title)]
+                                # If the user wants to watch a title from another country outside the US/Uk, call the function is_us_or_uk_title to find out whether the title is from the US/UK and if that returns true then filter the titles based on the country preference
+                                elif country_preference == "no":
+                                    other_short_classic_data = [title for title in short_classic_data if is_outside_us_uk_title(title)]
 
-                                # Add the new list of filtered other country titles into a decision tree node on the right side
-                                if other_short_classic_data:
-                                    directions.append("right")
-                                    criteria.append("Other Titles")
-                                    recommended_titles = other_short_classic_data
-                            else :
-                                print("No recommended titles found based on this country preference in combination with the short_classic_data criteria")
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_short_classic_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_short_classic_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the short_classic_data criteria")
 
-                    # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
-                    elif duration_preference == "no":
-                        long_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
+                         # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        elif duration_preference == "no":
+                            long_classic_data = decide_title_type(selected_title, duration_preference, classic_data)
 
-                        # If there is long_classic_data, then add a right direction and the corresponding criteria to the list
-                        if long_classic_data:
-                            directions.append("right")
-                            criteria.append("Long Titles")
-                            recommended_titles = long_classic_data
+                            # If there is long_classic_data, then add a right direction and the corresponding criteria to the list
+                            if long_classic_data:
+                                directions.append("right")
+                                criteria.append("Long Titles")
+                                recommended_titles = long_classic_data
 
-                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
-                            if country_preference == "yes":
-                                us_uk_long_classic_data = [title for title in long_classic_data if is_us_or_uk_title(title)]
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_long_classic_data = [title for title in long_classic_data if is_us_or_uk_title(title)]
 
-                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
-                                if us_uk_long_classic_data:
-                                    directions.append("left")
-                                    criteria.append("US/UK Titles")
-                                    recommended_titles = us_uk_long_classic_data
-                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
-                            elif country_preference == "no":
-                                other_long_classic_data = [title for title in long_classic_data if is_outside_us_uk_title(title)]
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_long_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_long_classic_data
+                                # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_long_classic_data = [title for title in long_classic_data if is_outside_us_uk_title(title)]
 
-                                # Add the new list of filtered other country titles into a decision tree node on the right side
-                                if other_long_classic_data:
-                                    directions.append("right")
-                                    criteria.append("Other Titles")
-                                    recommended_titles = other_long_classic_data
-                            else:
-                                print("No recommended titles found based on this country preference in combination with the long_classic_data criteria")
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_long_classic_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_long_classic_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the long_classic_data criteria")
 
 
-            # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
-            elif classic_preference == "no":
-                non_classic_data = [title for title in child_friendly_data if title.release_year > 2010]
-                # If there is non-classic_data, then add a right direction and the corresponding criteria to the list
-                if non_classic_data:
-                    directions.append("right")
-                    criteria.append("Non-Classic Titles")
-                    recommended_titles = non_classic_data
+                # If the user does not want to watch a classic movie/season, create a new list of titles that were released after year 2010
+                elif classic_preference == "no":
+                    non_classic_data = [title for title in child_friendly_data if title.release_year > 2010]
+                    # If there is non-classic_data, then add a right direction and the corresponding criteria to the list
+                    if non_classic_data:
+                        directions.append("right")
+                        criteria.append("Non-Classic Titles")
+                        recommended_titles = non_classic_data
 
-                    # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
-                    if duration_preference == "yes":
-                        non_classic_short_data = decide_title_type(selected_title, duration_preference, non_classic_data)
-                        # If there is short non-classic_data, then add a left direction and the corresponding criteria to the list
-                        if non_classic_short_data:
-                            directions.append("left")
-                            criteria.append("Short Titles")
-                            recommended_titles = non_classic_short_data
+                        # If the user wants to watch a short movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        if duration_preference == "yes":
+                            non_classic_short_data = decide_title_type(selected_title, duration_preference, non_classic_data)
+                            # If there is short non-classic_data, then add a left direction and the corresponding criteria to the list
+                            if non_classic_short_data:
+                                directions.append("left")
+                                criteria.append("Short Titles")
+                                recommended_titles = non_classic_short_data
 
-                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
-                            if country_preference == "yes":
-                                us_uk_short_non_classic_data = [title for title in non_classic_short_data if is_us_or_uk_title(title)]
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_short_non_classic_data = [title for title in non_classic_short_data if is_us_or_uk_title(title)]
 
-                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
-                                if us_uk_short_non_classic_data:
-                                    directions.append("left")
-                                    criteria.append("US/UK Titles")
-                                    recommended_titles = us_uk_short_non_classic_data
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_short_non_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_short_non_classic_data
 
-                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
-                            elif country_preference == "no":
-                                other_short_non_classic_data = [title for title in non_classic_short_data if is_outside_us_uk_title(title)]
+                                # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_short_non_classic_data = [title for title in non_classic_short_data if is_outside_us_uk_title(title)]
 
-                                # Add the new list of filtered other country titles into a decision tree node on the right side
-                                if other_short_non_classic_data:
-                                    directions.append("right")
-                                    criteria.append("Other Titles")
-                                    recommended_titles = other_short_non_classic_data
-                            else:
-                                print("No recommended titles found based on this country preference in combination with the non_classic_short_data criteria")
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_short_non_classic_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_short_non_classic_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_classic_short_data criteria")
 
-                    # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
-                    elif duration_preference == "no":
-                        non_classic_long_data = decide_title_type(selected_title, duration_preference, non_classic_data)
+                        # If the user wants to watch a long movie/season, call the function decide_title_type to decide whether the title is a movie or a tv show and then filter the titles based on the corresponding duration
+                        elif duration_preference == "no":
+                            non_classic_long_data = decide_title_type(selected_title, duration_preference, non_classic_data)
 
-                        # If there is long non_classic_data, then add a right direction and the corresponding criteria to the list
-                        if non_classic_long_data:
-                            directions.append("right")
-                            criteria.append("Long Titles")
-                            recommended_titles = non_classic_long_data
+                            # If there is long non_classic_data, then add a right direction and the corresponding criteria to the list
+                            if non_classic_long_data:
+                                directions.append("right")
+                                criteria.append("Long Titles")
+                                recommended_titles = non_classic_long_data
 
-                            # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
-                            if country_preference == "yes":
-                                us_uk_long_non_classic_data = [title for title in non_classic_long_data if is_us_or_uk_title(title)]
+                                # If the user wants to watch a title from the US or the UK, create a new list of titles that have the country listed as "United States" or "United Kingdom" (or both)
+                                if country_preference == "yes":
+                                    us_uk_long_non_classic_data = [title for title in non_classic_long_data if is_us_or_uk_title(title)]
 
-                                # Add the new list of filtered US/UK titles into a decision tree node on the left side
-                                if us_uk_long_non_classic_data:
-                                    directions.append("left")
-                                    criteria.append("US/UK Titles")
-                                    recommended_titles = us_uk_long_non_classic_data
+                                    # Add the new list of filtered US/UK titles into a decision tree node on the left side
+                                    if us_uk_long_non_classic_data:
+                                        directions.append("left")
+                                        criteria.append("US/UK Titles")
+                                        recommended_titles = us_uk_long_non_classic_data
 
-                            # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
-                            elif country_preference == "no":
-                                other_non_classic_long_data = [title for title in non_classic_long_data if is_outside_us_uk_title(title)]
+                                # If the user wants to watch a title from another country outside the US/Uk, create a new list of titles that have the country listed as something other than "United States" or "United Kingdom"
+                                elif country_preference == "no":
+                                    other_non_classic_long_data = [title for title in non_classic_long_data if is_outside_us_uk_title(title)]
 
-                                # Add the new list of filtered other country titles into a decision tree node on the right side
-                                if other_non_classic_long_data:
-                                    directions.append("right")
-                                    criteria.append("Other Titles")
-                                    recommended_titles = other_non_classic_long_data
-                            else:
-                                print("No recommended titles found based on this country preference in combination with the non_classic_long_data criteria")
+                                    # Add the new list of filtered other country titles into a decision tree node on the right side
+                                    if other_non_classic_long_data:
+                                        directions.append("right")
+                                        criteria.append("Other Titles")
+                                        recommended_titles = other_non_classic_long_data
+                                else:
+                                    print("No recommended titles found based on this country preference in combination with the non_classic_long_data criteria")
 
         # If the user does not want to watch a child-friendly movie/season, create a new list of titles that are not rated with the ages listed (thus also inluding "NR")
         elif child_friendly_preference == "no":

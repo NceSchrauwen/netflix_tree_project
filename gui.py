@@ -496,6 +496,10 @@ class NetflixGUI:
         self.get_user_input()
         # Go to recommendations tab
         self.go_to_recommendations()
+
+        # Calculate and update jaccard similarity scores in the database, only the scores that are subject to change
+        process_recommendations(threshold)
+
         # Trigger recommendation process and get filtered recommended titles
         filtered_recommended_titles = get_recommendations(self, netflix_titles, num_suggestions)
         # First check if there are any recommended titles, then populate the treeview with the recommendations
@@ -505,8 +509,8 @@ class NetflixGUI:
         else:
             print("No filtered recommended titles to populate the GUI.")
 
-        # Calculate and update jaccard similarity scores in the database, only the scores that are subject to change
-        process_recommendations(threshold)
+        # # Calculate and update jaccard similarity scores in the database, only the scores that are subject to change
+        # process_recommendations(threshold)
 
         # Function to read out the CSV regarding the genre counts
         genre_counts = read_genre_counts()

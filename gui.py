@@ -217,6 +217,10 @@ class NetflixGUI:
         self.button = ttk.Button(self.tab2, text="Exit", command=lambda: self.window.destroy())
         self.button.pack(side="left", pady=20)
 
+        # Label to display error messages if the user input is invalid
+        self.error_message_lbl = ttk.Label(self.tab2_frame, text="", font=("Ariel", 12), foreground="red")
+        self.error_message_lbl.pack(side="left", pady=20)
+
     # Function to create the third tab
     def create_tab3(self):
         # Create the third tab
@@ -474,26 +478,46 @@ class NetflixGUI:
     # Function to get the user input from the preferences tab to use in the decision-making algorithm
     def get_user_input(self):
         # Get the values from the user input fields
-        child_friendly_preference = self.pg_entry.get()
-        classic_preference = self.classic_entry.get()
-        duration_preference = self.duration_entry.get()
-        country_preference = self.country_entry.get()
+        def get_valid_input(entry):
+            value = entry.get().strip().lower()
+            # Validate the input to only accept 'yes' or 'no' as input
+            if value in ['yes', 'no']:
+                return value
+            else:
+                # If the input is invalid, print an error message and return None
+                print("Invalid input. Please enter 'yes' or 'no' for each preference.")
+                return None
 
-        # If the user input is valid (either yes or no), pass it onto the decision tree
-        if all(value in ['yes', 'no'] for value in [child_friendly_preference, classic_preference, duration_preference, country_preference]):
-            # Input is verified so pass it onto the decision tree using the get_user_input function from the decision_tree module
-            decision_tree.get_user_input(child_friendly_preference, classic_preference, duration_preference, country_preference)
-            print(f"User input: pg={child_friendly_preference}, classic={classic_preference}, duration={duration_preference}, country={country_preference}")
-        # If the user input is invalid, print an error message (Anything other than yes or no is invalid)
+        # Get the user input from the preferences tab and validate the input
+        child_friendly_preference = get_valid_input(self.pg_entry)
+        classic_preference = get_valid_input(self.classic_entry)
+        duration_preference = get_valid_input(self.duration_entry)
+        country_preference = get_valid_input(self.country_entry)
+
+        # If any of the inputs are invalid, print an error message and return None
+        if None in [child_friendly_preference, classic_preference, duration_preference, country_preference]:
+            print("One or more inputs are invalid. Please correct them and try again.")
+            return None
+        # If all inputs are valid, print the user input and return the validated preferences
         else:
-            print("Invalid input. Please enter 'yes' or 'no' for each preference.")
+            decision_tree.get_user_input(child_friendly_preference, classic_preference, duration_preference,
+                                         country_preference)
+            print(
+                f"User input: pg={child_friendly_preference}, classic={classic_preference}, duration={duration_preference}, country={country_preference}")
 
         return child_friendly_preference, classic_preference, duration_preference, country_preference
 
     # Function to submit the preferences and get the recommendations
     def submit_preferences(self, netflix_titles, num_suggestions):
         # Get the user input from the preferences tab
-        self.get_user_input()
+        user_input = self.get_user_input()
+
+        # If the user input is invalid, print an error message and return None
+        if user_input is None:
+            # If the user input is invalid, print an error message in the label to notify the user
+            self.error_message_lbl.config(text="Error: Invalid input. Please correct the input and try again.")
+            return None
+
         # Go to recommendations tab
         self.go_to_recommendations()
 
@@ -508,9 +532,6 @@ class NetflixGUI:
         # If there are no recommended titles, print an error message
         else:
             print("No filtered recommended titles to populate the GUI.")
-
-        # # Calculate and update jaccard similarity scores in the database, only the scores that are subject to change
-        # process_recommendations(threshold)
 
         # Function to read out the CSV regarding the genre counts
         genre_counts = read_genre_counts()
